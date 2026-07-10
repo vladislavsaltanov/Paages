@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: paages-postgres
+    environment:
+      POSTGRES_USER: paages
+      POSTGRES_PASSWORD: paages_dev_password
+      POSTGRES_DB: paages
+    ports:
+      - "5432:5432"
+    volumes:
+      - paages-pgdata:/var/lib/postgresql/data
+
+volumes:
+  paages-pgdata:
