@@ -1,0 +1,6 @@
+@Paages.Api_HostAddress = http://localhost:5293
+
+GET {{Paages.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
