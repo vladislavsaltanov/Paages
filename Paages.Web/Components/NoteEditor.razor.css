@@ -16,6 +16,7 @@
     color: #fff;
     line-height: 1.5;
     margin-bottom: 24px;
+    border: none;
 }
 
 /* Quill appends .ql-container > .ql-editor inside #note-content-area after render,
