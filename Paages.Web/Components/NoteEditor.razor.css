@@ -1,0 +1,73 @@
+.note-editor { width: 100%; }
+
+.ne-inner {
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 40px 0 80px;
+}
+
+.ne-title { font-size: 44px; font-weight: 700; color: #fff; margin: 0 0 20px; }
+
+.ne-meta { font-size: 14px; font-weight: 300; color: #fff; opacity: .6; margin-bottom: 30px; }
+
+.ne-body {
+    font-size: 18px;
+    font-weight: 400;
+    color: #fff;
+    line-height: 1.5;
+    margin-bottom: 24px;
+}
+
+/* Quill appends .ql-container > .ql-editor inside #note-content-area after render,
+   so Blazor's scoped CSS isolation does not reliably apply to it (::deep needed). */
+.ne-body ::deep .ql-container.ql-snow {
+    border: none;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.ne-body ::deep .ql-editor {
+    padding: 0;
+    outline: none;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    line-height: inherit;
+}
+
+.ne-body ::deep .ql-editor p {
+    margin: 0 0 16px;
+}
+
+.ne-body ::deep .ql-editor p:last-child {
+    margin-bottom: 0;
+}
+
+.ne-body ::deep .ql-editor h1 { font-size: 32px; font-weight: 700; margin: 0 0 16px; }
+.ne-body ::deep .ql-editor h2 { font-size: 26px; font-weight: 700; margin: 0 0 16px; }
+.ne-body ::deep .ql-editor h3 { font-size: 22px; font-weight: 700; margin: 0 0 16px; }
+
+.ne-body ::deep .ql-editor ul {
+    margin: 0 0 16px;
+    padding-left: 24px;
+}
+
+.ne-body ::deep .ql-editor blockquote {
+    border-left: 3px solid #ffdb89;
+    background-color: #2c2c2e;
+    padding: 12px 25px;
+    margin: 0 0 16px;
+    box-sizing: border-box;
+}
+
+/* Consecutive blockquotes (created via Enter-to-continue) are visually merged into one block. */
+.ne-body ::deep .ql-editor blockquote + blockquote {
+    margin-top: -16px;
+    padding-top: 0;
+}
+
+.ne-body ::deep .ql-editor .ql-comment {
+    font-style: italic;
+    opacity: 0.6;
+    margin: 0 0 16px;
+}

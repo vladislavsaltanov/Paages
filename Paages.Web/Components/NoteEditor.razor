@@ -1,0 +1,55 @@
+@* Quill-backed note editor. #note-content-area is the mount point for Quill. *@
+@using Microsoft.JSInterop
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<section class="note-editor">
+    <div class="ne-inner">
+
+        <h1 class="ne-title">Дела по дому</h1>
+
+        <div class="ne-meta">
+            создано 12 июня 2026 • изменено 20 июля 2026 в 23:52 • #дела #дом
+        </div>
+
+        <div id="@ElementId" class="ne-body"></div>
+
+    </div>
+</section>
+
+@code {
+    private readonly string ElementId = $"note-content-area-{Guid.NewGuid():N}";
+    private IJSObjectReference? _module;
+
+    [Parameter]
+    public string? InitialHtml { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/noteEditor.js");
+        await _module.InvokeVoidAsync("createEditor", ElementId, InitialHtml);
+    }
+
+    public async Task<string> GetHtmlAsync()
+    {
+        if (_module is null) return string.Empty;
+        return await _module.InvokeAsync<string>("getHtml", ElementId);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_module is null) return;
+
+        try
+        {
+            await _module.InvokeVoidAsync("destroyEditor", ElementId);
+            await _module.DisposeAsync();
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit already gone (e.g. tab closed) — nothing to clean up.
+        }
+    }
+}

@@ -1,0 +1,13 @@
+.app-shell {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    grid-template-rows: 80px 1fr;
+    height: 100vh;
+    background-color: #030303;
+    color: #fff;
+    font-family: var(--font-mono);
+}
+
+::deep .sidebar { grid-row: 1 / 3; }
+::deep .topbar { grid-column: 2; grid-row: 1; }
+::deep .note-editor { grid-column: 2; grid-row: 2; overflow-y: auto; }
