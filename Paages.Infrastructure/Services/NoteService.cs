@@ -28,6 +28,16 @@ public class NoteService
         return await _db.Notes.FindAsync(id);
     }
 
+    public async Task SaveNoteContentAsync(Guid id, string html)
+    {
+        var note = await _db.Notes.FindAsync(id);
+        if (note is null) return;
+
+        note.ContentHtml = html;
+        note.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+    }
+
 
     public async Task<List<Folder>> GetFolderTreeAsync()
     {

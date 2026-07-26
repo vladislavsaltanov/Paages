@@ -5,6 +5,7 @@ const editors = {};
 // built-in italic format) so a manually-italicized line is never mistaken for a
 // comment line, and so styling (italic + 60% opacity) is fully controlled by CSS.
 const BlockBlot = Quill.import('blots/block');
+const Delta = Quill.import('delta');
 class CommentBlot extends BlockBlot {
     static blotName = 'comment';
     static tagName = 'div';
@@ -30,12 +31,15 @@ const BOLD_PATTERN = { regex: /\*\*([^*]+)\*\*$/, format: 'bold' };
 const ITALIC_PATTERN = { regex: /_([^_]+)_$/, format: 'italic' };
 const INLINE_PATTERNS = [BOLD_PATTERN, ITALIC_PATTERN];
 
-export function createEditor(elementId, initialHtml) {
+export function createEditor(elementId, initialHtml, dotNetRef) {
     const quill = new Quill('#' + elementId, {
         theme: 'snow',
         modules: {
             // Built-in Snow toolbar disabled: app uses its own floating toolbar.
             toolbar: false,
+            clipboard: {
+                matchVisual: false
+            },
             // Custom keyboard binding must be registered here, at construction time.
             // Bindings added later via addBinding() run after Quill's built-in handlers
             // and cannot intercept Backspace in time.
@@ -87,30 +91,55 @@ export function createEditor(elementId, initialHtml) {
                             quill.formatLine(range.index + 1, 1, 'comment', false, 'user');
                             quill.setSelection(range.index + 1, 0, 'user');
                         }
+                    }, 
+                    saveNow: {
+                        key: 's',
+                        shortKey: true,
+                        handler: function () {
+                            triggerSave(elementId, true);
+                            return false;
+                        }
                     }
                 }
             }
         }
     });
+    
+    quill.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
+        const plainDelta = new Delta();
+        delta.ops.forEach(op => {
+            if (typeof op.insert === 'string') {
+                plainDelta.insert(op.insert);
+            }
+        });
+        return plainDelta;
+    });
 
     if (initialHtml) {
-        quill.root.innerHTML = initialHtml;
+        quill.clipboard.dangerouslyPasteHTML(initialHtml, 'api');
     }
+
+    editors[elementId] = { quill, dotNetRef, saveTimer: null };
 
     quill.on('text-change', (delta, oldDelta, source) => {
         if (source !== 'user') return;
 
-        // Editor fully cleared (e.g. select all + delete): Quill keeps the
-        // block format of whatever line survives. Reset it to plain text.
         const hasDelete = delta.ops.some(op => typeof op.delete === 'number');
+
         if (hasDelete && quill.getLength() === 1) {
             quill.formatLine(0, 1, { header: false, list: false, blockquote: false, comment: false }, 'user');
         }
 
         handleAutoFormat(quill, delta);
+        scheduleSave(elementId);
     });
 
-    editors[elementId] = quill;
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            triggerSave(elementId);
+        }
+    }, { capture: true });
 }
 
 function handleAutoFormat(quill, delta) {
@@ -141,6 +170,27 @@ function handleAutoFormat(quill, delta) {
             return;
         }
     }
+}
+
+const SAVE_DEBOUNCE_MS = 3000;
+function scheduleSave(elementId) 
+{
+    const entry = editors[elementId];
+    if (!entry) return;
+
+    clearTimeout(entry.saveTimer);
+    entry.saveTimer = setTimeout(() => {
+        triggerSave(elementId);
+    }, SAVE_DEBOUNCE_MS);
+}
+
+function triggerSave(elementId, immediate = false) {
+    const entry = editors[elementId];
+    if (!entry || !entry.dotNetRef) return;
+
+    clearTimeout(entry.saveTimer);
+    const html = entry.quill.root.innerHTML;
+    entry.dotNetRef.invokeMethodAsync('OnContentChanged', html);
 }
 
 // Delta from a single keystroke normally has one 'insert' op; extract its last character.
@@ -174,15 +224,17 @@ function applyInlineFormat(quill, cursorIndex, match, formatName) {
 }
 
 export function getHtml(elementId) {
-    const quill = editors[elementId];
-    return quill ? quill.root.innerHTML : '';
+    const entry = editors[elementId];
+    return entry ? entry.quill.root.innerHTML : '';
 }
 
 export function setHtml(elementId, html) {
-    const quill = editors[elementId];
-    if (quill) quill.root.innerHTML = html;
+    const entry = editors[elementId];
+    if (entry) entry.quill.clipboard.dangerouslyPasteHTML(html, 'api');
 }
 
 export function destroyEditor(elementId) {
+    const entry = editors[elementId];
+    if (entry) clearTimeout(entry.saveTimer);
     delete editors[elementId];
 }

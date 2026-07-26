@@ -1,5 +1,6 @@
 @* Quill-backed note editor. #note-content-area is the mount point for Quill. *@
 @using Microsoft.JSInterop
+@inject NoteService NoteService
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 
@@ -14,22 +15,31 @@
 
         <div id="@ElementId" class="ne-body"></div>
 
+        <div class="ne-save-status @(_showSavedStatus ? "visible" : "")">
+            сохранено @_lastSavedAt.ToString("HH:mm")
+        </div>
     </div>
 </section>
 
 @code {
     private readonly string ElementId = $"note-content-area-{Guid.NewGuid():N}";
     private IJSObjectReference? _module;
+    private DotNetObjectReference<NoteEditor>? _dotNetRef;
+    private CancellationTokenSource? _hideStatusCts;
 
     [Parameter]
     public Note? Note { get; set; }
+
+    private DateTime _lastSavedAt;
+    private bool _showSavedStatus;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
 
         _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/noteEditor.js");
-        await _module.InvokeVoidAsync("createEditor", ElementId, Note?.ContentHtml);
+        _dotNetRef = DotNetObjectReference.Create(this);
+        await _module.InvokeVoidAsync("createEditor", ElementId, Note?.ContentHtml, _dotNetRef);
     }
 
     public async Task<string> GetHtmlAsync()
@@ -38,8 +48,36 @@
         return await _module.InvokeAsync<string>("getHtml", ElementId);
     }
 
+    [JSInvokable]
+    public async Task OnContentChanged(string html)
+    {
+        if (Note is null) return;
+
+        await NoteService.SaveNoteContentAsync(Note.Id, html);
+
+        _lastSavedAt = DateTime.Now;
+        _showSavedStatus = true;
+        StateHasChanged();
+
+        _hideStatusCts?.Cancel();
+        _hideStatusCts = new CancellationTokenSource();
+        var token = _hideStatusCts.Token;
+        try
+        {
+            await Task.Delay(2000, token);
+            _showSavedStatus = false;
+            StateHasChanged();
+        }
+        catch (TaskCanceledException)
+        {
+            // Ignore cancellation
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
+        _hideStatusCts?.Cancel();
+
         if (_module is null) return;
 
         try
@@ -50,6 +88,10 @@
         catch (JSDisconnectedException)
         {
             // Circuit already gone (e.g. tab closed) — nothing to clean up.
+        }
+        finally
+        {
+            _dotNetRef?.Dispose();
         }
     }
 }

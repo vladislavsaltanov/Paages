@@ -11,7 +11,7 @@
     <TopBar />
     @if (_note is not null)
     {
-        <NoteEditor Note="_note" />
+        <NoteEditor @key="_note.Id" Note="_note" />
     }
     else
     {
