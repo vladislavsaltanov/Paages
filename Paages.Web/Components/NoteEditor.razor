@@ -10,7 +10,7 @@
         <h1 class="ne-title">@Note?.Title</h1>
 
         <div class="ne-meta">
-            создано @Note?.CreatedAt.ToString("d MMMM yyyy") • изменено @Note?.UpdatedAt.ToString("d MMMM yyyy в HH:mm")
+            создано @Note?.CreatedAt.ToLocalTime().ToString("d MMMM yyyy") • изменено @Note?.UpdatedAt.ToLocalTime().ToString("d MMMM yyyy в HH:mm")
         </div>
 
         <div id="@ElementId" class="ne-body"></div>
