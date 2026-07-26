@@ -10,4 +10,5 @@ public class Folder
     public List<Folder> Children { get; set; } = new();
     public List<Note> Notes { get; set; } = new();
     public string Name { get; set; } = string.Empty;
+    public bool IsPinned { get; set; }
 }

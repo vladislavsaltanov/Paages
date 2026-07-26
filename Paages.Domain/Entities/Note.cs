@@ -9,4 +9,5 @@ public class Note
     public string? ContentHtml { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public bool IsPinned { get; set; }
 }
