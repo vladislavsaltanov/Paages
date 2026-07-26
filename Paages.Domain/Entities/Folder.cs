@@ -6,5 +6,8 @@ public class Folder
 {
     public Guid Id { get; set; }
     public Guid? ParentId { get; set; }
+    public Folder? Parent { get; set; }
+    public List<Folder> Children { get; set; } = new();
+    public List<Note> Notes { get; set; } = new();
     public string Name { get; set; } = string.Empty;
 }

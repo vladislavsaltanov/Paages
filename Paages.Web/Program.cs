@@ -1,6 +1,7 @@
 using Paages.Web.Components;
 using Microsoft.EntityFrameworkCore;
 using Paages.Infrastructure.Data;
+using Paages.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -10,6 +11,7 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddDbContext<PaagesDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<NoteService>();
 
 var app = builder.Build();
 
