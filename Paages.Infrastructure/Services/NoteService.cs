@@ -29,7 +29,7 @@ public class NoteService
     }
 
 
-    public async Task<List<Folder>> GetTreeFoldersAsync()
+    public async Task<List<Folder>> GetFolderTreeAsync()
     {
         var allFolders = await _db.Folders
                 .Include(f => f.Notes)

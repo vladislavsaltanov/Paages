@@ -10,4 +10,5 @@ public class Note
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsPinned { get; set; }
+    public int SortOrder { get; set; } // TODO
 }

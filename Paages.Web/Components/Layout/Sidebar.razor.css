@@ -84,31 +84,18 @@
 
 .sb-tree { position: relative; flex-shrink: 0; margin: 15px 10px 0; }
 .sb-tree-divider { display: flex; align-items: center; gap: 6px; height: 8px; }
-.sb-tree-guide { position: absolute; left: 14px; top: 26px; width: 0.3px; height: 110px; background-color: rgba(255, 255, 255, 0.6); opacity: .6; }
 
-.sb-tree-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 14px;
-    font-weight: 400;
-    color: #fff;
+
+.sb-tree-children { position: relative; }
+.sb-tree-guide {
+    position: absolute;
+    left: 5px;
+    top: 0;
+    bottom: 0;
+    width: 0.3px;
+    background-color: rgba(255, 255, 255, 0.6);
+    opacity: .6;
 }
-.sb-tree-dom { margin-top: 10px; }
-.sb-tree-archive { margin-top: 17px; padding-left: 20px; opacity: .5; }
-.sb-tree-sad { margin-top: 10px; padding-left: 24px; }
-.sb-tree-spisok { margin-top: 17px; padding-left: 24px; }
-
-.sb-tree-active {
-    margin-top: 10px;
-    border-radius: 6px;
-    background-color: #2c2c2e;
-    padding: 8px 0 8px 12px;
-    margin-left: -10px;
-    margin-right: -10px;
-}
-
-.chevron-collapsed { transform: rotate(-90deg); }
 
 .sb-footer {
     margin-top: auto;

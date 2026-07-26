@@ -1,0 +1,36 @@
+.sb-tree-row {
+    cursor: pointer;
+    border-radius: 6px;
+    margin-top: 2px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+}
+.sb-tree-row:hover {
+    background-color: #2c2c2e;
+}
+.sb-tree-row-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 400;
+    color: #fff;
+    width: 100%;
+}
+
+.sb-tree-active {
+    background-color: #2c2c2e;
+}
+
+.sb-tree-children { position: relative; }
+.sb-tree-guide {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0.3px;
+    background-color: rgba(255, 255, 255, 0.6);
+    opacity: .6;
+}
+
+.chevron-collapsed { transform: rotate(-90deg); }
