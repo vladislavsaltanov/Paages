@@ -43,6 +43,14 @@ public class NoteService
         return allFolders.Where(f => f.ParentId == null).ToList();
     }
 
+    public async Task<List<Note>> GetNotesWithoutFolderAsync()
+    {
+        return await _db.Notes
+            .Where(n => n.FolderId == null)
+            .OrderBy(n => n.SortOrder)
+            .ToListAsync();
+    }
+
     public async Task SeedTestDataAsync()
     {
         if (await _db.Notes.AnyAsync()) return;

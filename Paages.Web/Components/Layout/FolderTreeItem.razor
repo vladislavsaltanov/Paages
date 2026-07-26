@@ -24,16 +24,11 @@
             <div class="sb-tree-guide" style="left: @(16 + Level * 20 + 3)px"></div>
             @foreach (var child in Folder.Children.OrderBy(f => f.SortOrder))
             {
-                <FolderTreeItem Folder="child" Level="Level + 1" />
+                <FolderTreeItem Folder="child" Level="Level + 1" ActiveNoteId="ActiveNoteId" />
             }
             @foreach (var note in Folder.Notes.OrderBy(n => n.SortOrder))
             {
-                <div class="sb-tree-row" @onclick="() => OpenNote(note.Id)">
-                    <div class="sb-tree-row-content" style="padding-left: @(16 + (Level + 1) * 20)px">
-                        <span class="chevron-wrapper"></span>
-                        <span>@note.Title</span>
-                    </div>
-                </div>
+                <NoteTreeItem Note="note" PaddingLeft="16 + (Level + 1) * 20" ActiveNoteId="ActiveNoteId" />
             }
         </div>
     }
@@ -42,7 +37,7 @@
 @code {
     [Parameter] public Folder? Folder { get; set; }
     [Parameter] public int Level { get; set; } = 0;
-
+    [Parameter] public Guid? ActiveNoteId { get; set; } 
     private bool _isExpanded = true;
     private bool IsActive => false;
 
@@ -54,9 +49,4 @@
     private static readonly MarkupString ChevronDown = new("""
         <svg viewBox="0 0 5.5 3" width="6" height="3" class="chevron"><path fill="#fff" d="M5.427 0.427L2.927 2.927C2.9038 2.9503 2.8762 2.9687 2.8459 2.9813 2.8155 2.9939 2.783 3.0003 2.7501 3.0003 2.7173 3.0003 2.6848 2.9939 2.6544 2.9813 2.6241 2.9687 2.5965 2.9503 2.5733 2.927L0.0733 0.427C0.0264 0.3801 0 0.3165 0 0.2501 0 0.1838 0.0264 0.1202 0.0733 0.0733 0.1202 0.0264 0.1838 0 0.2501 0 0.3165 0 0.3801 0.0264 0.427 0.0733L2.7501 2.3967 5.0733 0.0733C5.0965 0.05 5.1241 0.0316 5.1544 0.019 5.1848 0.0065 5.2173 0 5.2501 0 5.283 0 5.3155 0.0065 5.3459 0.019 5.3762 0.0316 5.4038 0.05 5.427 0.0733 5.4502 0.0965 5.4687 0.1241 5.4812 0.1544 5.4938 0.1848 5.5003 0.2173 5.5003 0.2501 5.5003 0.283 5.4938 0.3155 5.4812 0.3459 5.4687 0.3762 5.4502 0.4038 5.427 0.427Z" /></svg>
         """);
-
-    private void OpenNote(Guid noteId)
-    {
-        Navigation.NavigateTo($"/notes/{noteId}");
-    }
 }
