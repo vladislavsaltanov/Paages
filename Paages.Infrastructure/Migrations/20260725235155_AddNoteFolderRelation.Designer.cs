@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Paages.Infrastructure.Data;
 
@@ -10,9 +11,11 @@ using Paages.Infrastructure.Data;
 namespace Paages.Infrastructure.Migrations
 {
     [DbContext(typeof(PaagesDbContext))]
-    partial class PaagesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260725235155_AddNoteFolderRelation")]
+    partial class AddNoteFolderRelation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
@@ -23,9 +26,6 @@ namespace Paages.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsPinned")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -33,12 +33,7 @@ namespace Paages.Infrastructure.Migrations
                     b.Property<Guid?>("ParentId")
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("ParentId");
 
                     b.ToTable("Folders");
                 });
@@ -58,12 +53,6 @@ namespace Paages.Infrastructure.Migrations
                     b.Property<Guid?>("FolderId")
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsPinned")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -78,16 +67,6 @@ namespace Paages.Infrastructure.Migrations
                     b.ToTable("Notes");
                 });
 
-            modelBuilder.Entity("Paages.Domain.Entities.Folder", b =>
-                {
-                    b.HasOne("Paages.Domain.Entities.Folder", "Parent")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentId")
-                        .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("Parent");
-                });
-
             modelBuilder.Entity("Paages.Domain.Entities.Note", b =>
                 {
                     b.HasOne("Paages.Domain.Entities.Folder", "Folder")
@@ -100,8 +79,6 @@ namespace Paages.Infrastructure.Migrations
 
             modelBuilder.Entity("Paages.Domain.Entities.Folder", b =>
                 {
-                    b.Navigation("Children");
-
                     b.Navigation("Notes");
                 });
 #pragma warning restore 612, 618

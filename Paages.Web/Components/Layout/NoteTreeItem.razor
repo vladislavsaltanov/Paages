@@ -1,0 +1,19 @@
+@inject NavigationManager Navigation
+
+<div class="sb-tree-row @(Note.Id == ActiveNoteId ? "sb-tree-active" : "")" @onclick="() => OpenNote(Note.Id)">
+    <div class="sb-tree-row-content" style="padding-left: @(PaddingLeft)px">
+        <span class="chevron-wrapper"></span>
+        <span>@Note.Title</span>
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public Note Note { get; set; } = null!;
+    [Parameter] public int PaddingLeft { get; set; } = 16;
+    [Parameter] public Guid? ActiveNoteId { get; set; }
+
+    void OpenNote(Guid noteId)
+    {
+        Navigation.NavigateTo($"/notes/{noteId}");
+    }
+}

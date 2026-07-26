@@ -72,3 +72,6 @@ obj/
 
 ## Прочее
 *.log
+*.db
+*.db-shm
+*.db-wal

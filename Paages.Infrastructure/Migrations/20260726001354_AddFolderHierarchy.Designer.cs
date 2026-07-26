@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Paages.Infrastructure.Data;
 
@@ -10,9 +11,11 @@ using Paages.Infrastructure.Data;
 namespace Paages.Infrastructure.Migrations
 {
     [DbContext(typeof(PaagesDbContext))]
-    partial class PaagesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260726001354_AddFolderHierarchy")]
+    partial class AddFolderHierarchy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
@@ -23,18 +26,12 @@ namespace Paages.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsPinned")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<Guid?>("ParentId")
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
 
                     b.HasKey("Id");
 
@@ -57,12 +54,6 @@ namespace Paages.Infrastructure.Migrations
 
                     b.Property<Guid?>("FolderId")
                         .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsPinned")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Title")
                         .IsRequired()
