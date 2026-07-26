@@ -6,10 +6,10 @@
 <section class="note-editor">
     <div class="ne-inner">
 
-        <h1 class="ne-title">Дела по дому</h1>
+        <h1 class="ne-title">@Note?.Title</h1>
 
         <div class="ne-meta">
-            создано 12 июня 2026 • изменено 20 июля 2026 в 23:52 • #дела #дом
+            создано @Note?.CreatedAt.ToString("d MMMM yyyy") • изменено @Note?.UpdatedAt.ToString("d MMMM yyyy в HH:mm")
         </div>
 
         <div id="@ElementId" class="ne-body"></div>
@@ -22,14 +22,14 @@
     private IJSObjectReference? _module;
 
     [Parameter]
-    public string? InitialHtml { get; set; }
+    public Note? Note { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
 
         _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/noteEditor.js");
-        await _module.InvokeVoidAsync("createEditor", ElementId, InitialHtml);
+        await _module.InvokeVoidAsync("createEditor", ElementId, Note?.ContentHtml);
     }
 
     public async Task<string> GetHtmlAsync()

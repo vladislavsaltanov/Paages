@@ -1,11 +1,33 @@
 @page "/notes"
+@page "/notes/{NoteId:guid}"
 @layout EmptyLayout
 @rendermode InteractiveServer
+@inject NoteService NoteService
 
-<PageTitle>Личные заметки</PageTitle>
+<PageTitle>Заметки</PageTitle>
 
 <div class="app-shell">
     <Sidebar />
     <TopBar />
-    <NoteEditor />
+    @if (_note is not null)
+    {
+        <NoteEditor Note="_note" />
+    }
+    else
+    {
+        <div class="ne-empty">Выберите заметку слева</div>
+    }
 </div>
+
+@code {
+    [Parameter] public Guid? NoteId { get; set; }
+
+    private Note? _note;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _note = NoteId.HasValue
+            ? await NoteService.GetNoteAsync(NoteId.Value)
+            : null;
+    }
+}

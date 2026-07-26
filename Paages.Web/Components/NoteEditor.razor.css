@@ -1,4 +1,4 @@
-.note-editor { width: 100%; }
+.note-editor { width: 100%; min-height: 100%; }
 
 .ne-inner {
     max-width: 1020px;
@@ -17,6 +17,7 @@
     line-height: 1.5;
     margin-bottom: 24px;
     border: none;
+    min-height: 400px;
 }
 
 /* Quill appends .ql-container > .ql-editor inside #note-content-area after render,
