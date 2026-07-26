@@ -172,7 +172,7 @@ function handleAutoFormat(quill, delta) {
     }
 }
 
-const SAVE_DEBOUNCE_MS = 3000;
+const SAVE_DEBOUNCE_MS = 1500;
 function scheduleSave(elementId) 
 {
     const entry = editors[elementId];
