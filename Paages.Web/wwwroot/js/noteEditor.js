@@ -104,7 +104,7 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
             }
         }
     });
-    
+    let isInitialLoad = true;
     quill.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
         const plainDelta = new Delta();
         delta.ops.forEach(op => {
@@ -116,12 +116,16 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
     });
 
     if (initialHtml) {
-        quill.clipboard.dangerouslyPasteHTML(initialHtml, 'api');
+        quill.root.innerHTML = initialHtml;
+    } else {
+        isInitialLoad = false;
     }
 
-    editors[elementId] = { quill, dotNetRef, saveTimer: null };
-
     quill.on('text-change', (delta, oldDelta, source) => {
+        if (isInitialLoad) {
+            isInitialLoad = false;
+            return;
+        }
         if (source !== 'user') return;
 
         const hasDelete = delta.ops.some(op => typeof op.delete === 'number');
@@ -134,12 +138,15 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
         scheduleSave(elementId);
     });
 
-    document.addEventListener('keydown', (e) => {
+    const handleKeydown = (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault();
             triggerSave(elementId);
         }
-    }, { capture: true });
+    };
+    document.addEventListener('keydown', handleKeydown, { capture: true });
+
+    editors[elementId] = { quill, dotNetRef, saveTimer: null, handleKeydown };
 }
 
 function handleAutoFormat(quill, delta) {
@@ -235,6 +242,9 @@ export function setHtml(elementId, html) {
 
 export function destroyEditor(elementId) {
     const entry = editors[elementId];
-    if (entry) clearTimeout(entry.saveTimer);
+    if (entry) {
+        clearTimeout(entry.saveTimer);
+        document.removeEventListener('keydown', entry.handleKeydown, { capture: true });
+    }
     delete editors[elementId];
 }
