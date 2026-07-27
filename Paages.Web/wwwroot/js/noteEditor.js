@@ -32,6 +32,8 @@ const ITALIC_PATTERN = { regex: /_([^_]+)_$/, format: 'italic' };
 const INLINE_PATTERNS = [BOLD_PATTERN, ITALIC_PATTERN];
 
 export function createEditor(elementId, initialHtml, dotNetRef) {
+    if (!document.getElementById(elementId)) return; // note switched away before mount landed
+
     const quill = new Quill('#' + elementId, {
         theme: 'snow',
         modules: {
