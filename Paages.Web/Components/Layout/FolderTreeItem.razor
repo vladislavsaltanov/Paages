@@ -21,7 +21,6 @@
     @if (_isExpanded && (Folder.Children.Count > 0 || Folder.Notes.Count > 0))
     {
         <div class="sb-tree-children">
-            <div class="sb-tree-guide" style="left: @(16 + Level * 20 + 3)px"></div>
             @foreach (var child in Folder.Children.OrderBy(f => f.SortOrder))
             {
                 <FolderTreeItem Folder="child" Level="Level + 1" ActiveNoteId="ActiveNoteId" />
@@ -30,6 +29,7 @@
             {
                 <NoteTreeItem Note="note" PaddingLeft="16 + (Level + 1) * 20" ActiveNoteId="ActiveNoteId" />
             }
+            <div class="sb-tree-guide" style="left: @(16 + Level * 20 + 3)px"></div>
         </div>
     }
 }
