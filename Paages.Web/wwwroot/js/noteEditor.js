@@ -22,6 +22,14 @@ const LINE_PATTERNS = [
     { regex: /^>\s$/, format: { blockquote: true }, stripLen: 2 },
     { regex: /^\/\/\s$/, format: { comment: true }, stripLen: 3 },
 ];
+const PASTE_BLOCK_PATTERNS = [
+    { regex: /^###\s+/, format: { header: 3 } },
+    { regex: /^##\s+/, format: { header: 2 } },
+    { regex: /^#\s+/, format: { header: 1 } },
+    { regex: /^-\s+/, format: { list: 'bullet' } },
+    { regex: /^>\s+/, format: { blockquote: true } },
+    { regex: /^\/\/\s+/, format: { comment: true } },
+];
 
 // Block formats that revertOnBackspace should be able to clear.
 const REVERTIBLE_FORMATS = ['header', 'list', 'blockquote', 'comment'];
@@ -107,15 +115,6 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
         }
     });
     let isInitialLoad = true;
-    quill.clipboard.addMatcher(Node.ELEMENT_NODE, (node, delta) => {
-        const plainDelta = new Delta();
-        delta.ops.forEach(op => {
-            if (typeof op.insert === 'string') {
-                plainDelta.insert(op.insert);
-            }
-        });
-        return plainDelta;
-    });
 
     if (initialHtml) {
         quill.root.innerHTML = initialHtml;
@@ -148,7 +147,72 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
     };
     document.addEventListener('keydown', handleKeydown, { capture: true });
 
-    editors[elementId] = { quill, dotNetRef, saveTimer: null, handleKeydown };
+    const handlePaste = (e) => {
+        if (!quill.root.contains(e.target)) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+        insertMarkdownPaste(quill, text);
+    };
+    document.addEventListener('paste', handlePaste, true);
+
+    editors[elementId] = { quill, dotNetRef, saveTimer: null, handleKeydown, handlePaste };
+}
+
+function parseInlineRuns(text) {
+    const ops = [];
+    const regex = /\*\*([^*]+)\*\*|_([^_]+)_/g;
+    let lastIndex = 0, match;
+    while ((match = regex.exec(text)) !== null) {
+        if (match.index > lastIndex) ops.push({ insert: text.slice(lastIndex, match.index) });
+        if (match[1] !== undefined) ops.push({ insert: match[1], attributes: { bold: true } });
+        else ops.push({ insert: match[2], attributes: { italic: true } });
+        lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < text.length) ops.push({ insert: text.slice(lastIndex) });
+    return ops;
+}
+
+function insertMarkdownPaste(quill, text) {
+    const range = quill.getSelection(true);
+    if (!range) return;
+
+    const lines = text.replace(/\r\n/g, '\n').split('\n');
+    if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop(); // drop empty line from a copied full line
+
+    const content = new Delta();
+    let insertedLength = 0;
+
+    lines.forEach((line, i) => {
+        let blockFormat = null;
+        let lineText = line;
+        for (const p of PASTE_BLOCK_PATTERNS) {
+            if (p.regex.test(line)) {
+                blockFormat = p.format;
+                lineText = line.replace(p.regex, '');
+                break;
+            }
+        }
+
+        parseInlineRuns(lineText).forEach(op => {
+            content.insert(op.insert, op.attributes);
+            insertedLength += op.insert.length;
+        });
+
+        if (i < lines.length - 1) {
+            content.insert('\n', blockFormat || undefined);
+            insertedLength += 1;
+        } else if (blockFormat) {
+            content.retain(1, blockFormat); // reuse the existing closing '\n' instead of inserting a new one
+        }
+    });
+
+    quill.updateContents(
+        new Delta().retain(range.index).delete(range.length).concat(content),
+        'user'
+    );
+    quill.setSelection(range.index + insertedLength, 0, 'user');
 }
 
 function handleAutoFormat(quill, delta) {
@@ -247,6 +311,7 @@ export function destroyEditor(elementId) {
     if (entry) {
         clearTimeout(entry.saveTimer);
         document.removeEventListener('keydown', entry.handleKeydown, { capture: true });
+        document.removeEventListener('paste', entry.handlePaste, true);
     }
     delete editors[elementId];
 }
