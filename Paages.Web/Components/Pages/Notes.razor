@@ -1,13 +1,12 @@
 @page "/notes"
 @page "/notes/{NoteId:guid}"
 @layout EmptyLayout
-@rendermode InteractiveServer
 @inject NoteService NoteService
 
 <PageTitle>Заметки</PageTitle>
 
 <div class="app-shell">
-    <Sidebar />
+    <Sidebar ActiveNoteId="NoteId" />
     <TopBar />
     @if (_note is not null)
     {
