@@ -21,6 +21,7 @@ const LINE_PATTERNS = [
     { regex: /^-\s$/, format: { list: 'bullet' }, stripLen: 2 },
     { regex: /^>\s$/, format: { blockquote: true }, stripLen: 2 },
     { regex: /^\/\/\s$/, format: { comment: true }, stripLen: 3 },
+    { regex: /^```$/, format: { 'code-block': true }, stripLen: 3 },
 ];
 const PASTE_BLOCK_PATTERNS = [
     { regex: /^###\s+/, format: { header: 3 } },
@@ -32,12 +33,13 @@ const PASTE_BLOCK_PATTERNS = [
 ];
 
 // Block formats that revertOnBackspace should be able to clear.
-const REVERTIBLE_FORMATS = ['header', 'list', 'blockquote', 'comment'];
+const REVERTIBLE_FORMATS = ['header', 'list', 'blockquote', 'comment', 'code-block'];
 
 // Inline patterns: **text** for bold, _text_ for italic — handled via formatText, not formatLine.
 const BOLD_PATTERN = { regex: /\*\*([^*]+)\*\*$/, format: 'bold' };
 const ITALIC_PATTERN = { regex: /_([^_]+)_$/, format: 'italic' };
-const INLINE_PATTERNS = [BOLD_PATTERN, ITALIC_PATTERN];
+const CODE_PATTERN = { regex: /`([^`]+)`$/, format: 'code' };
+const INLINE_PATTERNS = [BOLD_PATTERN, ITALIC_PATTERN, CODE_PATTERN];
 
 export function createEditor(elementId, initialHtml, dotNetRef) {
     if (!document.getElementById(elementId)) return; // note switched away before mount landed
@@ -162,12 +164,13 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
 
 function parseInlineRuns(text) {
     const ops = [];
-    const regex = /\*\*([^*]+)\*\*|_([^_]+)_/g;
+    const regex = /\*\*([^*]+)\*\*|_([^_]+)_|`([^`]+)`/g;
     let lastIndex = 0, match;
     while ((match = regex.exec(text)) !== null) {
         if (match.index > lastIndex) ops.push({ insert: text.slice(lastIndex, match.index) });
         if (match[1] !== undefined) ops.push({ insert: match[1], attributes: { bold: true } });
-        else ops.push({ insert: match[2], attributes: { italic: true } });
+        else if (match[2] !== undefined) ops.push({ insert: match[2], attributes: { italic: true } });
+        else ops.push({ insert: match[3], attributes: { code: true } });
         lastIndex = regex.lastIndex;
     }
     if (lastIndex < text.length) ops.push({ insert: text.slice(lastIndex) });
@@ -178,35 +181,50 @@ function insertMarkdownPaste(quill, text) {
     const range = quill.getSelection(true);
     if (!range) return;
 
+    const insideCodeBlock = !!quill.getFormat(range.index)['code-block'];
     const lines = text.replace(/\r\n/g, '\n').split('\n');
     if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop(); // drop empty line from a copied full line
 
     const content = new Delta();
     let insertedLength = 0;
 
-    lines.forEach((line, i) => {
-        let blockFormat = null;
-        let lineText = line;
-        for (const p of PASTE_BLOCK_PATTERNS) {
-            if (p.regex.test(line)) {
-                blockFormat = p.format;
-                lineText = line.replace(p.regex, '');
-                break;
+    if (insideCodeBlock) {
+        // Raw text inside an active code block - no markdown parsing, keep code-block on every line.
+        lines.forEach((line, i) => {
+            content.insert(line);
+            insertedLength += line.length;
+            if (i < lines.length - 1) {
+                content.insert('\n', { 'code-block': true });
+                insertedLength += 1;
+            } else {
+                content.retain(1, { 'code-block': true }); // reuse existing closing '\n'
             }
-        }
-
-        parseInlineRuns(lineText).forEach(op => {
-            content.insert(op.insert, op.attributes);
-            insertedLength += op.insert.length;
         });
+    } else {
+        lines.forEach((line, i) => {
+            let blockFormat = null;
+            let lineText = line;
+            for (const p of PASTE_BLOCK_PATTERNS) {
+                if (p.regex.test(line)) {
+                    blockFormat = p.format;
+                    lineText = line.replace(p.regex, '');
+                    break;
+                }
+            }
 
-        if (i < lines.length - 1) {
-            content.insert('\n', blockFormat || undefined);
-            insertedLength += 1;
-        } else if (blockFormat) {
-            content.retain(1, blockFormat); // reuse the existing closing '\n' instead of inserting a new one
-        }
-    });
+            parseInlineRuns(lineText).forEach(op => {
+                content.insert(op.insert, op.attributes);
+                insertedLength += op.insert.length;
+            });
+
+            if (i < lines.length - 1) {
+                content.insert('\n', blockFormat || undefined);
+                insertedLength += 1;
+            } else if (blockFormat) {
+                content.retain(1, blockFormat); // reuse the existing closing '\n' instead of inserting a new one
+            }
+        });
+    }
 
     quill.updateContents(
         new Delta().retain(range.index).delete(range.length).concat(content),
@@ -217,7 +235,7 @@ function insertMarkdownPaste(quill, text) {
 
 function handleAutoFormat(quill, delta) {
     const insertedChar = getInsertedChar(delta);
-    if (insertedChar !== ' ' && insertedChar !== '*' && insertedChar !== '_') return;
+    if (insertedChar !== ' ' && insertedChar !== '*' && insertedChar !== '_' && insertedChar !== '`') return;
 
     const range = quill.getSelection();
     if (!range) return;
@@ -226,6 +244,15 @@ function handleAutoFormat(quill, delta) {
     if (!line) return;
 
     const lineText = quill.getText(range.index - lineOffset, lineOffset);
+
+    const currentFormat = quill.getFormat(range.index);
+    if (currentFormat['code-block'] && lineText === '```') {
+        quill.history.cutoff();
+        quill.deleteText(range.index - lineOffset, 3, 'user');
+        quill.formatLine(range.index - lineOffset, 1, { 'code-block': false }, 'user');
+        quill.history.cutoff();
+        return;
+    }
 
     // Check line-start patterns (#, -, >) first.
     for (const pattern of LINE_PATTERNS) {
