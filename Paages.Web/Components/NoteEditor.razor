@@ -14,12 +14,13 @@
         </div>
 
         <div id="@ElementId" class="ne-body"></div>
-
+        
         <div class="ne-save-status @(_showSavedStatus ? "visible" : "")">
-            сохранено @_lastSavedAt.ToString("HH:mm")
+                    сохранено @_lastSavedAt.ToString("HH:mm")
         </div>
     </div>
 </section>
+
 
 @code {
     private readonly string ElementId = $"note-content-area-{Guid.NewGuid():N}";

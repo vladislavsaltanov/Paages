@@ -8,6 +8,10 @@
     overflow-y: auto;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+    .sidebar { scroll-behavior: smooth; }
+}
+
 .sb-header {
     position: relative;
     height: 70px;
