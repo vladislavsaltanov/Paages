@@ -188,24 +188,43 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
     });
 
     quill.on('selection-change', (range, oldRange, source) => {
-        if (source !== 'user') return; // ignore selection shifts caused by our own 'silent' ops
+        if (source !== 'user') return;
 
         const entry = editors[elementId];
         if (!entry) return;
 
-        const newLine = range ? quill.getLine(range.index)[0] : null;
+        const currentLines = !range
+            ? new Set()
+            : range.length > 0
+                ? new Set(quill.getLines(range.index, range.length))
+                : new Set([quill.getLine(range.index)[0]]);
 
-        if (entry.revealed && entry.revealed.blot !== newLine) {
-            concealLine(quill, entry.revealed.blot);
-            entry.revealed = null;
+        for (const blot of entry.revealed) {
+            if (!currentLines.has(blot)) {
+                concealLine(quill, blot);
+                entry.revealed.delete(blot);
+            }
         }
 
-        if (!entry.revealed && range && range.length > 0) {
-            const [startLine] = quill.getLine(range.index);
-            const [endLine] = quill.getLine(range.index + range.length);
-            if (startLine === endLine) {
-                const revealedBlot = revealLine(quill, startLine);
-                if (revealedBlot) entry.revealed = { blot: revealedBlot };
+        if (entry.revealedCodeBlock) {
+            const stillInside = [...entry.revealedCodeBlock.blots].some(b => currentLines.has(b));
+            if (!stillInside) {
+                concealCodeBlock(quill, entry.revealedCodeBlock.blots);
+                entry.revealedCodeBlock = null;
+            }
+        }
+
+        if (range && range.length > 0) {
+            for (const blot of currentLines) {
+                if (isCodeBlockLine(blot)) {
+                    if (!entry.revealedCodeBlock) {
+                        const newLines = revealCodeBlock(quill, blot);
+                        entry.revealedCodeBlock = { blots: new Set(newLines) };
+                    }
+                } else if (!entry.revealed.has(blot)) {
+                    const revealedBlot = revealLine(quill, blot);
+                    if (revealedBlot) entry.revealed.add(revealedBlot);
+                }
             }
         }
     });
@@ -228,7 +247,7 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
     };
     document.addEventListener('paste', handlePaste, true);
 
-    editors[elementId] = { quill, dotNetRef, saveTimer: null, handleKeydown, handlePaste, revealed: null };
+    editors[elementId] = { quill, dotNetRef, saveTimer: null, handleKeydown, handlePaste, revealed: new Set(), revealedCodeBlock: null };
 }
 
 function parseInlineRuns(text) {
@@ -312,7 +331,7 @@ function handleAutoFormat(quill, delta, entry) {
     const [line, lineOffset] = quill.getLine(range.index);
     if (!line) return;
 
-    if (entry.revealed && entry.revealed.blot === line) return; // raw-editing this line, skip live auto-format
+    if (entry.revealed.has(line) || (entry.revealedCodeBlock && entry.revealedCodeBlock.blots.has(line))) return;
 
     const lineText = quill.getText(range.index - lineOffset, lineOffset);
 
@@ -419,43 +438,164 @@ function applyInlineFormat(quill, cursorIndex, match, formatName) {
     quill.history.cutoff();
 }
 
+function buildRawLine(ops, targetOffsets) {
+    let raw = '';
+    let formattedPos = 0;
+    const sorted = [...targetOffsets].sort((a, b) => a - b);
+    const offsetMap = new Map();
+    let targetIdx = 0;
+
+    ops.forEach(op => {
+        if (typeof op.insert !== 'string') return; // skip embeds
+        const text = op.insert;
+        const attrs = op.attributes || {};
+        const marker = attrs.code ? '`' : attrs.bold ? '**' : attrs.italic ? '_' : '';
+        const runEnd = formattedPos + text.length;
+
+        while (targetIdx < sorted.length && sorted[targetIdx] <= runEnd) {
+            const inner = Math.max(0, sorted[targetIdx] - formattedPos);
+            offsetMap.set(sorted[targetIdx], raw.length + marker.length + inner);
+            targetIdx++;
+        }
+
+        raw += marker + text + marker;
+        formattedPos = runEnd;
+    });
+    while (targetIdx < sorted.length) {
+        offsetMap.set(sorted[targetIdx], raw.length);
+        targetIdx++;
+    }
+
+    return { text: raw, offsetMap };
+}
+
 function revealLine(quill, blot) {
     const index = quill.getIndex(blot);
+    const length = blot.length() - 1;
     const format = quill.getFormat(index);
 
-    let prefix = null;
-    if (format.header) prefix = REVEAL_PREFIXES.header[format.header];
-    else if (format.blockquote) prefix = REVEAL_PREFIXES.blockquote;
-    else if (format.comment) prefix = REVEAL_PREFIXES.comment;
-    if (!prefix) return null;
+    const blockPrefix = format.header ? REVEAL_PREFIXES.header[format.header]
+        : format.blockquote ? REVEAL_PREFIXES.blockquote
+        : format.comment ? REVEAL_PREFIXES.comment
+        : '';
 
-    quill.insertText(index, prefix, 'silent');
+    const ops = quill.getContents(index, length).ops;
+    const hasInline = ops.some(op => op.attributes && (op.attributes.bold || op.attributes.italic || op.attributes.code));
+    if (!blockPrefix && !hasInline) return null;
+
+    const preSelection = quill.getSelection();
+    const targets = preSelection
+        ? [preSelection.index - index, preSelection.index + preSelection.length - index]
+            .map(v => Math.max(0, Math.min(length, v)))
+        : [];
+
+    const { text: inlineText, offsetMap } = buildRawLine(ops, targets);
+    const rawText = blockPrefix + inlineText;
+
+    quill.updateContents(new Delta().retain(index).delete(length).insert(rawText), 'silent');
     quill.formatLine(index, 1, { header: false, blockquote: false, comment: false }, 'silent');
-    return quill.getLine(index)[0]; // formatLine may have swapped the blot - re-fetch
+
+    if (preSelection) {
+        const rawStart = blockPrefix.length + offsetMap.get(targets[0]);
+        const rawEnd = blockPrefix.length + offsetMap.get(targets[1]);
+        quill.setSelection(index + rawStart, rawEnd - rawStart, 'silent');
+    } else {
+        quill.setSelection(index, rawText.length, 'silent');
+    }
+
+    return quill.getLine(index)[0];
 }
 
 function concealLine(quill, blot) {
     const index = quill.getIndex(blot);
-    const lineText = quill.getText(index, blot.length() - 1);
+    const length = blot.length() - 1;
+    const lineText = quill.getText(index, length);
 
+    let blockFormat = null;
+    let remainingText = lineText;
     for (const p of PASTE_BLOCK_PATTERNS) {
         const match = lineText.match(p.regex);
         if (match) {
-            quill.deleteText(index, match[0].length, 'silent');
-            quill.formatLine(index, 1, p.format, 'silent');
-            return quill.getLine(index)[0]; // re-fetch after blot swap
+            blockFormat = p.format;
+            remainingText = lineText.slice(match[0].length);
+            break;
         }
     }
-    return blot; // no format applied, original blot still valid
+
+    const content = new Delta().retain(index).delete(length);
+    parseInlineRuns(remainingText).forEach(op => content.insert(op.insert, op.attributes));
+    quill.updateContents(content, 'silent');
+
+    if (blockFormat) quill.formatLine(index, 1, blockFormat, 'silent');
+
+    return quill.getLine(index)[0];
+}
+
+function revealCodeBlock(quill, blot) {
+    const { first, last } = getCodeBlockExtent(blot);
+    const startIndex = quill.getIndex(first);
+    const endIndex = quill.getIndex(last) + last.length();
+    const contentLength = endIndex - startIndex - 1;
+
+    const contentText = quill.getText(startIndex, contentLength);
+    const rawText = '```\n' + contentText + '\n```';
+
+    quill.updateContents(new Delta().retain(startIndex).delete(contentLength).insert(rawText), 'silent');
+    quill.formatLine(startIndex, rawText.length + 1, { 'code-block': false }, 'silent');
+
+    return quill.getLines(startIndex, rawText.length + 1);
+}
+
+function concealCodeBlock(quill, blots) {
+    const sorted = [...blots].sort((a, b) => quill.getIndex(a) - quill.getIndex(b));
+    const first = sorted[0], last = sorted[sorted.length - 1];
+    const startIndex = quill.getIndex(first);
+    const contentLength = quill.getIndex(last) + last.length() - startIndex - 1;
+
+    const rawText = quill.getText(startIndex, contentLength);
+    const lines = rawText.split('\n');
+    if (lines.length < 2 || lines[0] !== '```' || lines[lines.length - 1] !== '```') {
+        return sorted; // fences got edited away - leave as plain text
+    }
+    const codeText = lines.slice(1, -1).join('\n');
+
+    quill.updateContents(new Delta().retain(startIndex).delete(contentLength).insert(codeText), 'silent');
+    quill.formatLine(startIndex, codeText.length + 1, { 'code-block': true }, 'silent');
+
+    return quill.getLines(startIndex, codeText.length + 1);
+}
+
+function isCodeBlockLine(blot) {
+    return !!(blot && blot.statics && blot.statics.blotName === 'code-block');
+}
+
+function getCodeBlockExtent(blot) {
+    let first = blot, last = blot;
+    while (isCodeBlockLine(first.prev)) first = first.prev;
+    while (isCodeBlockLine(last.next)) last = last.next;
+    return { first, last };
 }
 
 function getCleanHtml(entry) {
-    if (!entry.revealed) return entry.quill.root.innerHTML;
+    if (entry.revealed.size === 0 && !entry.revealedCodeBlock) return entry.quill.root.innerHTML;
 
-    const concealedBlot = concealLine(entry.quill, entry.revealed.blot);
+    const concealedBlots = [...entry.revealed].map(blot => concealLine(entry.quill, blot));
+    const concealedCodeLines = entry.revealedCodeBlock
+        ? concealCodeBlock(entry.quill, entry.revealedCodeBlock.blots)
+        : null;
+
     const html = entry.quill.root.innerHTML;
-    const revealedBlot = revealLine(entry.quill, concealedBlot);
-    if (revealedBlot) entry.revealed.blot = revealedBlot; // keep reference valid after round-trip
+
+    entry.revealed.clear();
+    for (const blot of concealedBlots) {
+        const revealedBlot = revealLine(entry.quill, blot);
+        if (revealedBlot) entry.revealed.add(revealedBlot);
+    }
+
+    if (concealedCodeLines) {
+        const newLines = revealCodeBlock(entry.quill, concealedCodeLines[0]);
+        entry.revealedCodeBlock = { blots: new Set(newLines) };
+    }
 
     return html;
 }
