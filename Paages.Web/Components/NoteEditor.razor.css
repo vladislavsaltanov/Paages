@@ -102,6 +102,12 @@
     color: #ffdb89;
 }
 
+.ne-body ::deep .ql-editor hr {
+    border: none;
+    border-top: 2px solid #ffffffcc;
+    margin: 24px 0;
+}
+
 .ne-save-status {
     position: fixed;
     bottom: 16px;

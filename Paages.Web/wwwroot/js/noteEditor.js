@@ -13,6 +13,15 @@ class CommentBlot extends BlockBlot {
 }
 Quill.register(CommentBlot, true);
 
+// Horizontal rule as a block embed - hr has no text content, so it can't reuse
+// the header/blockquote line-format pattern used elsewhere in this file.
+const BlockEmbed = Quill.import('blots/block/embed');
+class DividerBlot extends BlockEmbed {
+    static blotName = 'divider';
+    static tagName = 'hr';
+}
+Quill.register(DividerBlot, true);
+
 // Line-level auto-format patterns, checked after user types space, '*' or '_'.
 const LINE_PATTERNS = [
     { regex: /^#\s$/, format: { header: 1 }, stripLen: 2 },
@@ -111,6 +120,34 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
                             triggerSave(elementId, true);
                             return false;
                         }
+                    },
+                    // ArrowRight at the end of an inline code run: caret stays trapped
+                    // in the 'code' format otherwise, so plain text keeps appearing as code.
+                    exitInlineCode: {
+                        key: 'ArrowRight',
+                        format: ['code'],
+                        handler: function (range) {
+                            const nextFormat = quill.getFormat(range.index + 1);
+                            if (nextFormat.code) return true; // still inside the run, move normally
+
+                            quill.setSelection(range.index + 1, 0, 'user');
+                            quill.format('code', false, 'user');
+                            return false;
+                        }
+                    },
+                    // '---' on its own line, followed by Enter, becomes a horizontal rule.
+                    insertDivider: {
+                        key: 'Enter',
+                        handler: function (range, context) {
+                            if (context.prefix !== '---') return true; // not a divider line, normal Enter
+
+                            const lineStart = range.index - 3;
+                            quill.deleteText(lineStart, 3, 'user');
+                            quill.insertEmbed(lineStart, 'divider', true, 'user');
+                            quill.insertText(lineStart + 1, '\n', 'user');
+                            quill.setSelection(lineStart + 2, 0, 'user');
+                            return false;
+                        }
                     }
                 }
             }
@@ -139,6 +176,7 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
 
         handleAutoFormat(quill, delta);
         scheduleSave(elementId);
+        scrollCursorIntoView(quill);
     });
 
     const handleKeydown = (e) => {
@@ -269,6 +307,31 @@ function handleAutoFormat(quill, delta) {
             applyInlineFormat(quill, range.index, match, pattern.format);
             return;
         }
+    }
+}
+
+// Keeps the caret visible when it approaches the edge of the scrolling container.
+// Needed because the scrollable element is .note-editor (an ancestor of .ql-editor),
+// not .ql-editor itself, so the browser's native caret-follow scrolling doesn't apply.
+const SCROLL_MARGIN = 100;
+function scrollCursorIntoView(quill) {
+    const selection = quill.getSelection();
+    if (!selection) return;
+
+    const scrollContainer = quill.root.closest('.note-editor');
+    if (!scrollContainer) return;
+
+    const bounds = quill.getBounds(selection.index);
+    const editorRect = quill.root.getBoundingClientRect();
+    const containerRect = scrollContainer.getBoundingClientRect();
+
+    const cursorBottom = editorRect.top + bounds.bottom;
+    const cursorTop = editorRect.top + bounds.top;
+
+    if (cursorBottom > containerRect.bottom - SCROLL_MARGIN) {
+        scrollContainer.scrollTop += (cursorBottom - containerRect.bottom + SCROLL_MARGIN);
+    } else if (cursorTop < containerRect.top + SCROLL_MARGIN) {
+        scrollContainer.scrollTop -= (containerRect.top + SCROLL_MARGIN - cursorTop);
     }
 }
 
