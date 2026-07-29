@@ -40,6 +40,12 @@ const PASTE_BLOCK_PATTERNS = [
     { regex: /^>\s+/, format: { blockquote: true } },
     { regex: /^\/\/\s+/, format: { comment: true } },
 ];
+// Prefix text for reveal-on-selection: reformats one of these back to raw markdown.
+const REVEAL_PREFIXES = {
+    header: { 1: '# ', 2: '## ', 3: '### ' },
+    blockquote: '> ',
+    comment: '// '
+};
 
 // Block formats that revertOnBackspace should be able to clear.
 const REVERTIBLE_FORMATS = ['header', 'list', 'blockquote', 'comment', 'code-block'];
@@ -174,9 +180,34 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
             quill.formatLine(0, 1, { header: false, list: false, blockquote: false, comment: false }, 'user');
         }
 
-        handleAutoFormat(quill, delta);
+        const entry = editors[elementId];
+        if (!entry) return;
+        handleAutoFormat(quill, delta, entry);
         scheduleSave(elementId);
         scrollCursorIntoView(quill);
+    });
+
+    quill.on('selection-change', (range, oldRange, source) => {
+        if (source !== 'user') return; // ignore selection shifts caused by our own 'silent' ops
+
+        const entry = editors[elementId];
+        if (!entry) return;
+
+        const newLine = range ? quill.getLine(range.index)[0] : null;
+
+        if (entry.revealed && entry.revealed.blot !== newLine) {
+            concealLine(quill, entry.revealed.blot);
+            entry.revealed = null;
+        }
+
+        if (!entry.revealed && range && range.length > 0) {
+            const [startLine] = quill.getLine(range.index);
+            const [endLine] = quill.getLine(range.index + range.length);
+            if (startLine === endLine) {
+                const revealedBlot = revealLine(quill, startLine);
+                if (revealedBlot) entry.revealed = { blot: revealedBlot };
+            }
+        }
     });
 
     const handleKeydown = (e) => {
@@ -197,7 +228,7 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
     };
     document.addEventListener('paste', handlePaste, true);
 
-    editors[elementId] = { quill, dotNetRef, saveTimer: null, handleKeydown, handlePaste };
+    editors[elementId] = { quill, dotNetRef, saveTimer: null, handleKeydown, handlePaste, revealed: null };
 }
 
 function parseInlineRuns(text) {
@@ -271,7 +302,7 @@ function insertMarkdownPaste(quill, text) {
     quill.setSelection(range.index + insertedLength, 0, 'user');
 }
 
-function handleAutoFormat(quill, delta) {
+function handleAutoFormat(quill, delta, entry) {
     const insertedChar = getInsertedChar(delta);
     if (insertedChar !== ' ' && insertedChar !== '*' && insertedChar !== '_' && insertedChar !== '`') return;
 
@@ -280,6 +311,8 @@ function handleAutoFormat(quill, delta) {
 
     const [line, lineOffset] = quill.getLine(range.index);
     if (!line) return;
+
+    if (entry.revealed && entry.revealed.blot === line) return; // raw-editing this line, skip live auto-format
 
     const lineText = quill.getText(range.index - lineOffset, lineOffset);
 
@@ -352,7 +385,7 @@ function triggerSave(elementId, immediate = false) {
     if (!entry || !entry.dotNetRef) return;
 
     clearTimeout(entry.saveTimer);
-    const html = entry.quill.root.innerHTML;
+    const html = getCleanHtml(entry);
     entry.dotNetRef.invokeMethodAsync('OnContentChanged', html);
 }
 
@@ -384,6 +417,47 @@ function applyInlineFormat(quill, cursorIndex, match, formatName) {
     // it to whatever is typed next after the formatted text.
     quill.format(formatName, false, 'user');
     quill.history.cutoff();
+}
+
+function revealLine(quill, blot) {
+    const index = quill.getIndex(blot);
+    const format = quill.getFormat(index);
+
+    let prefix = null;
+    if (format.header) prefix = REVEAL_PREFIXES.header[format.header];
+    else if (format.blockquote) prefix = REVEAL_PREFIXES.blockquote;
+    else if (format.comment) prefix = REVEAL_PREFIXES.comment;
+    if (!prefix) return null;
+
+    quill.insertText(index, prefix, 'silent');
+    quill.formatLine(index, 1, { header: false, blockquote: false, comment: false }, 'silent');
+    return quill.getLine(index)[0]; // formatLine may have swapped the blot - re-fetch
+}
+
+function concealLine(quill, blot) {
+    const index = quill.getIndex(blot);
+    const lineText = quill.getText(index, blot.length() - 1);
+
+    for (const p of PASTE_BLOCK_PATTERNS) {
+        const match = lineText.match(p.regex);
+        if (match) {
+            quill.deleteText(index, match[0].length, 'silent');
+            quill.formatLine(index, 1, p.format, 'silent');
+            return quill.getLine(index)[0]; // re-fetch after blot swap
+        }
+    }
+    return blot; // no format applied, original blot still valid
+}
+
+function getCleanHtml(entry) {
+    if (!entry.revealed) return entry.quill.root.innerHTML;
+
+    const concealedBlot = concealLine(entry.quill, entry.revealed.blot);
+    const html = entry.quill.root.innerHTML;
+    const revealedBlot = revealLine(entry.quill, concealedBlot);
+    if (revealedBlot) entry.revealed.blot = revealedBlot; // keep reference valid after round-trip
+
+    return html;
 }
 
 export function getHtml(elementId) {
