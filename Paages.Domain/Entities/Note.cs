@@ -1,6 +1,6 @@
 namespace Paages.Domain.Entities;
 
-public class Note
+public class Note : ITreeNode
 {
     public Guid Id { get; set; }
     public Guid? FolderId { get; set; }

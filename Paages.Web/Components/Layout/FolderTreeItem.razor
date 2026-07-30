@@ -1,8 +1,20 @@
 @inject NavigationManager Navigation
+@using Paages.Web.Services
+@inject DragDropState DragDropState
+@using Paages.Domain.Entities
+@implements IDisposable
 
 @if (Folder is not null)
 {
-    <div class="sb-tree-row @(IsActive ? "sb-tree-active" : "")" @onclick="ToggleExpanded">
+    <div class="sb-tree-row @(IsActive ? "sb-tree-active" : "") @(IsDisabled ? "sb-tree-dragging" : "")"
+         id="@($"tree-row-{Folder!.Id}")"
+         data-is-folder="true"
+         draggable="true"
+         @ondragstart="() => DragDropState.StartDrag(Folder!.Id, true)"
+         @ondragend="DragDropState.EndDrag"
+         @ondragover:preventDefault="true"
+         @ondrop="HandleDrop"
+         @onclick="ToggleExpanded">
         <div class="sb-tree-row-content" style="padding-left: @(16 + Level * 20)px">
             @if (Folder.Children.Count > 0 || Folder.Notes.Count > 0)
             {
@@ -21,13 +33,19 @@
     @if (_isExpanded && (Folder.Children.Count > 0 || Folder.Notes.Count > 0))
     {
         <div class="sb-tree-children">
-            @foreach (var child in Folder.Children.OrderBy(f => f.SortOrder))
+            @{ var list = Items.ToList(); }
+            @for (int i = 0; i < list.Count; i++)
             {
-                <FolderTreeItem Folder="child" Level="Level + 1" ActiveNoteId="ActiveNoteId" @key="child.Id"/>
-            }
-            @foreach (var note in Folder.Notes.OrderBy(n => n.SortOrder))
-            {
-                <NoteTreeItem Note="note" PaddingLeft="16 + (Level + 1) * 20" ActiveNoteId="ActiveNoteId" @key="note.Id"/>
+                var item = list[i];
+                Guid? nextId = i + 1 < list.Count ? list[i + 1].Id : null;
+                @if (item is Folder childFolder)
+                {
+                    <FolderTreeItem Folder="childFolder" Level="Level + 1" ActiveNoteId="ActiveNoteId" ForceDisabled="IsDisabled" NextSiblingId="nextId" @key="childFolder.Id"/>
+                }
+                else if (item is Note note)
+                {
+                    <NoteTreeItem Note="note" PaddingLeft="16 + (Level + 1) * 20" ActiveNoteId="ActiveNoteId" ForceDisabled="IsDisabled" NextSiblingId="nextId" @key="note.Id"/>
+                }
             }
             <div class="sb-tree-guide" style="left: @(16 + Level * 20 + 3)px"></div>
         </div>
@@ -35,18 +53,56 @@
 }
 
 @code {
+    [Inject] private NoteService NoteService { get; set; } = null!;
+    [Parameter] public Guid? NextSiblingId { get; set; }
+    [Parameter] public bool ForceDisabled { get; set; } = false; // true if folder is inactive during drag-and-drop operation
+    private bool IsDragged => DragDropState.DraggedNodeId == Folder!.Id && DragDropState.DraggedIsFolder;
+    private bool IsDisabled => ForceDisabled || IsDragged;
+
     [Parameter] public Folder? Folder { get; set; }
     [Parameter] public int Level { get; set; } = 0;
-    [Parameter] public Guid? ActiveNoteId { get; set; } 
+    [Parameter] public Guid? ActiveNoteId { get; set; }  
     private bool _isExpanded = true;
     private bool IsActive => false;
+
+    protected override void OnInitialized()
+    {
+        DragDropState.Changed += StateHasChanged;
+    }
+
+    private IEnumerable<ITreeNode> Items =>
+    Folder!.Children.Cast<ITreeNode>()
+        .Concat(Folder.Notes.Cast<ITreeNode>())
+        .OrderBy(n => n.SortOrder);
 
     private void ToggleExpanded()
     {
         _isExpanded = !_isExpanded;
     }
+    private async Task HandleDrop(DragEventArgs e)
+    {
+        if (DragDropState.DraggedNodeId is not Guid draggedId) return;
+
+        double y = await DragDropState.GetRelativeYAsync($"tree-row-{Folder!.Id}", e.ClientY);
+
+        if (y < 0.4)
+            await NoteService.MoveAsync(draggedId, DragDropState.DraggedIsFolder, Folder.ParentId, Folder.Id);
+        else if (y > 0.6)
+            await NoteService.MoveAsync(draggedId, DragDropState.DraggedIsFolder, Folder.ParentId, NextSiblingId);
+        else
+            await NoteService.MoveAsync(draggedId, DragDropState.DraggedIsFolder, Folder.Id, null);
+
+        await DragDropState.ClearIndicatorAsync();
+        DragDropState.EndDrag();
+        DragDropState.NotifyMoved();
+    }
 
     private static readonly MarkupString ChevronDown = new("""
         <svg viewBox="0 0 5.5 3" width="6" height="3" class="chevron"><path fill="#fff" d="M5.427 0.427L2.927 2.927C2.9038 2.9503 2.8762 2.9687 2.8459 2.9813 2.8155 2.9939 2.783 3.0003 2.7501 3.0003 2.7173 3.0003 2.6848 2.9939 2.6544 2.9813 2.6241 2.9687 2.5965 2.9503 2.5733 2.927L0.0733 0.427C0.0264 0.3801 0 0.3165 0 0.2501 0 0.1838 0.0264 0.1202 0.0733 0.0733 0.1202 0.0264 0.1838 0 0.2501 0 0.3165 0 0.3801 0.0264 0.427 0.0733L2.7501 2.3967 5.0733 0.0733C5.0965 0.05 5.1241 0.0316 5.1544 0.019 5.1848 0.0065 5.2173 0 5.2501 0 5.283 0 5.3155 0.0065 5.3459 0.019 5.3762 0.0316 5.4038 0.05 5.427 0.0733 5.4502 0.0965 5.4687 0.1241 5.4812 0.1544 5.4938 0.1848 5.5003 0.2173 5.5003 0.2501 5.5003 0.283 5.4938 0.3155 5.4812 0.3459 5.4687 0.3762 5.4502 0.4038 5.427 0.427Z" /></svg>
         """);
+
+    public void Dispose()
+    {
+        DragDropState.Changed -= StateHasChanged;
+    }
 }

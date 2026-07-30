@@ -1,6 +1,10 @@
-@inject NoteService NoteService
 @inject NavigationManager Navigation
-<aside class="sidebar">
+@using Paages.Domain.Entities
+@using Paages.Web.Services
+@implements IDisposable
+@inject DragDropState DragDropState
+
+<aside class="sidebar" id="sidebar-tree-root">
 
     <div class="sb-header">
         <div class="sb-chevron">
@@ -38,6 +42,11 @@
 
     <a class="sb-nav sb-nav-calendar" href="#">
         <svg viewBox="0 0 12 13" width="12" height="13"><path fill="#fff" d="M11 1H9.5V0.5C9.5 0.3674 9.4473 0.2402 9.3536 0.1464 9.2598 0.0527 9.1326 0 9 0 8.8674 0 8.7402 0.0527 8.6464 0.1464 8.5527 0.2402 8.5 0.3674 8.5 0.5V1H3.5V0.5C3.5 0.3674 3.4473 0.2402 3.3536 0.1464 3.2598 0.0527 3.1326 0 3 0 2.8674 0 2.7402 0.0527 2.6464 0.1464 2.5527 0.2402 2.5 0.3674 2.5 0.5V1H1C0.7348 1 0.4804 1.1054 0.2929 1.2929 0.1054 1.4804 0 1.7348 0 2V12C0 12.2652 0.1054 12.5196 0.2929 12.7071 0.4804 12.8946 0.7348 13 1 13H11C11.2652 13 11.5196 12.8946 11.7071 12.7071 11.8946 12.5196 12 12.2652 12 12V2C12 1.7348 11.8946 1.4804 11.7071 1.2929 11.5196 1.1054 11.2652 1 11 1ZM2.5 2V2.5C2.5 2.6326 2.5527 2.7598 2.6464 2.8536 2.7402 2.9473 2.8674 3 3 3 3.1326 3 3.2598 2.9473 3.3536 2.8536 3.4473 2.7598 3.5 2.6326 3.5 2.5V2H8.5V2.5C8.5 2.6326 8.5527 2.7598 8.6464 2.8536 8.7402 2.9473 8.8674 3 9 3 9.1326 3 9.2598 2.9473 9.3536 2.8536 9.4473 2.7598 9.5 2.6326 9.5 2.5V2H11V4H1V2H2.5ZM11 12H1V5H11V12Z" /></svg>
+        <span>главная</span>
+    </a>
+
+    <a class="sb-nav sb-nav-calendar" href="#">
+        <svg viewBox="0 0 12 13" width="12" height="13"><path fill="#fff" d="M11 1H9.5V0.5C9.5 0.3674 9.4473 0.2402 9.3536 0.1464 9.2598 0.0527 9.1326 0 9 0 8.8674 0 8.7402 0.0527 8.6464 0.1464 8.5527 0.2402 8.5 0.3674 8.5 0.5V1H3.5V0.5C3.5 0.3674 3.4473 0.2402 3.3536 0.1464 3.2598 0.0527 3.1326 0 3 0 2.8674 0 2.7402 0.0527 2.6464 0.1464 2.5527 0.2402 2.5 0.3674 2.5 0.5V1H1C0.7348 1 0.4804 1.1054 0.2929 1.2929 0.1054 1.4804 0 1.7348 0 2V12C0 12.2652 0.1054 12.5196 0.2929 12.7071 0.4804 12.8946 0.7348 13 1 13H11C11.2652 13 11.5196 12.8946 11.7071 12.7071 11.8946 12.5196 12 12.2652 12 12V2C12 1.7348 11.8946 1.4804 11.7071 1.2929 11.5196 1.1054 11.2652 1 11 1ZM2.5 2V2.5C2.5 2.6326 2.5527 2.7598 2.6464 2.8536 2.7402 2.9473 2.8674 3 3 3 3.1326 3 3.2598 2.9473 3.3536 2.8536 3.4473 2.7598 3.5 2.6326 3.5 2.5V2H8.5V2.5C8.5 2.6326 8.5527 2.7598 8.6464 2.8536 8.7402 2.9473 8.8674 3 9 3 9.1326 3 9.2598 2.9473 9.3536 2.8536 9.4473 2.7598 9.5 2.6326 9.5 2.5V2H11V4H1V2H2.5ZM11 12H1V5H11V12Z" /></svg>
         <span>календарь</span>
     </a>
 
@@ -46,7 +55,7 @@
         <span>список дел</span>
     </a>
 
-    <a class="sb-nav sb-nav-recent" href="#">
+    <a class="sb-nav sb-nav-recent" href="#"> 
         <svg viewBox="0 0 12.5 12" width="13" height="12"><path fill="#fff" d="M6.5004 2.997V5.7138L8.7579 7.0682C8.8716 7.1365 8.9535 7.2472 8.9856 7.3759 9.0177 7.5046 8.9974 7.6408 8.9291 7.7545 8.8608 7.8682 8.7502 7.9501 8.6215 7.9822 8.4928 8.0143 8.3566 7.994 8.2429 7.9257L5.7429 6.4257C5.6689 6.3813 5.6077 6.3184 5.5652 6.2433 5.5227 6.1681 5.5003 6.0833 5.5004 5.997V2.997C5.5004 2.8644 5.5531 2.7372 5.6468 2.6434 5.7406 2.5496 5.8678 2.497 6.0004 2.497 6.133 2.497 6.2602 2.5496 6.3539 2.6434 6.4477 2.7372 6.5004 2.8644 6.5004 2.997ZM12.0004 1.497C11.8678 1.497 11.7406 1.5496 11.6468 1.6434 11.5531 1.7372 11.5004 1.8644 11.5004 1.997V3.122C11.1035 2.662 10.6985 2.2188 10.2429 1.7576 9.409 0.9237 8.3479 0.3539 7.1921 0.1196 6.0364-0.1147 4.8372-0.0032 3.7444 0.4401 2.6516 0.8835 1.7137 1.639 1.0478 2.6124 0.382 3.5857 0.0178 4.7337 0.0006 5.9129-0.0165 7.092 0.3142 8.2501 0.9515 9.2424 1.5888 10.2347 2.5044 11.0171 3.5838 11.492 4.6633 11.9669 5.8588 12.1132 7.0209 11.9125 8.183 11.7119 9.2602 11.1732 10.1179 10.3638 10.1656 10.3187 10.2041 10.2646 10.2309 10.2046 10.2578 10.1446 10.2725 10.0799 10.2744 10.0142 10.2763 9.9485 10.2652 9.8831 10.2417 9.8217 10.2183 9.7603 10.183 9.7041 10.1379 9.6563 10.0927 9.6086 10.0386 9.5702 9.9786 9.5433 9.9187 9.5165 9.854 9.5017 9.7883 9.4998 9.7226 9.498 9.6571 9.5091 9.5957 9.5325 9.5343 9.5559 9.4781 9.5912 9.4304 9.6363 8.7154 10.3101 7.8178 10.7584 6.8496 10.9251 5.8814 11.0918 4.8855 10.9696 3.9864 10.5737 3.0872 10.1778 2.3246 9.5258 1.7938 8.6991 1.263 7.8724 0.9875 6.9076 1.0017 5.9253 1.0159 4.943 1.3192 3.9866 1.8737 3.1756 2.4282 2.3646 3.2093 1.7349 4.1195 1.3652 5.0297 0.9954 6.0287 0.9021 6.9917 1.0967 7.9546 1.2913 8.8389 1.7653 9.5341 2.4595 10.0429 2.9745 10.4885 3.4707 10.9379 3.997H9.5004C9.3678 3.997 9.2406 4.0496 9.1468 4.1434 9.0531 4.2372 9.0004 4.3644 9.0004 4.497 9.0004 4.6296 9.0531 4.7568 9.1468 4.8505 9.2406 4.9443 9.3678 4.997 9.5004 4.997H12.0004C12.133 4.997 12.2602 4.9443 12.3539 4.8505 12.4477 4.7568 12.5004 4.6296 12.5004 4.497V1.997C12.5004 1.8644 12.4477 1.7372 12.3539 1.6434 12.2602 1.5496 12.133 1.497 12.0004 1.497Z" /></svg>
         <span>недавние</span>
     </a>
@@ -65,20 +74,28 @@
         </a>
     </div>
 
-    <div class="sb-tree">
+    <div class="sb-tree" @ondragover:preventDefault="true" @ondrop="HandleDrop">
+        <div class="drop-line" style="display:none;"></div>
         <div class="sb-tree-divider">
             <div class="sb-line"></div>
             <span class="sb-plus">
                 <svg viewBox="0 0 6 6" width="6" height="6"><path fill="#fff" d="M6 3C6 3.0663 5.9737 3.1299 5.9268 3.1768 5.8799 3.2237 5.8163 3.25 5.75 3.25H3.25V5.75C3.25 5.8163 3.2237 5.8799 3.1768 5.9268 3.1299 5.9737 3.0663 6 3 6 2.9337 6 2.8701 5.9737 2.8232 5.9268 2.7763 5.8799 2.75 5.8163 2.75 5.75V3.25H0.25C0.1837 3.25 0.1201 3.2237 0.0732 3.1768 0.0263 3.1299 0 3.0663 0 3 0 2.9337 0.0263 2.8701 0.0732 2.8232 0.1201 2.7763 0.1837 2.75 0.25 2.75H2.75V0.25C2.75 0.1837 2.7763 0.1201 2.8232 0.0732 2.8701 0.0263 2.9337 0 3 0 3.0663 0 3.1299 0.0263 3.1768 0.0732 3.2237 0.1201 3.25 0.1837 3.25 0.25V2.75H5.75C5.8163 2.75 5.8799 2.7763 5.9268 2.8232 5.9737 2.8701 6 2.9337 6 3Z" /></svg>
             </span>
         </div>
-        @foreach (var folder in _folderTree)
+        @{ var list = RootItems.ToList(); }
+        @for (int i = 0; i < list.Count; i++)
         {
-            <FolderTreeItem Folder="folder" ActiveNoteId="ActiveNoteId" @key="folder.Id"/>
-        }
-        @foreach (var note in _notesWithoutFolder)
-        {
-            <NoteTreeItem Note="note" ActiveNoteId="ActiveNoteId" @key="note.Id"/>
+            var item = list[i];
+            Guid? nextId = i + 1 < list.Count ? list[i + 1].Id : null;
+            
+            @if (item is Folder folder)
+            {
+                <FolderTreeItem Folder="folder" ActiveNoteId="ActiveNoteId" NextSiblingId="nextId"  @key="folder.Id"/>
+            }
+            else if (item is Note note)
+            {
+                <NoteTreeItem Note="note" ActiveNoteId="ActiveNoteId" NextSiblingId="nextId"  @key="note.Id"/>
+            }
         }
     </div>
 
@@ -96,6 +113,9 @@
 </aside>
 
 @code {
+    [Inject] private IJSRuntime JS { get; set; } = null!;
+    private IJSObjectReference? _dragDropModule;
+    [Inject] private NoteService NoteService { get; set; } = null!;
     [Parameter] public Guid? ActiveNoteId { get; set; }
 
     private static readonly MarkupString FolderIcon = new("""
@@ -104,13 +124,48 @@
 
     List<Folder> _folderTree = new();
     List<Note> _notesWithoutFolder = new();
+
+    private IEnumerable<ITreeNode> RootItems =>
+        _folderTree.Cast<ITreeNode>().Concat(_notesWithoutFolder).OrderBy(item => item.SortOrder);
+
+    protected override void OnInitialized()
+    {
+        DragDropState.Moved += RefreshTree;
+    }
+    private async void RefreshTree()
+    {
+        _folderTree = await NoteService.GetFolderTreeAsync();
+        _notesWithoutFolder = await NoteService.GetNotesWithoutFolderAsync();
+        await InvokeAsync(StateHasChanged);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         _folderTree = await NoteService.GetFolderTreeAsync();
         _notesWithoutFolder = await NoteService.GetNotesWithoutFolderAsync();
     }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dragDropModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/dragDrop.js");
+            await _dragDropModule.InvokeVoidAsync("initTreeDragOver", "sidebar-tree-root");
+        }
+    }
     private void OpenNote(Guid noteId)
     {
         Navigation.NavigateTo($"/notes/{noteId}");
+    }
+    private async Task HandleDrop(DragEventArgs e)
+    {
+        if (DragDropState.DraggedNodeId is not Guid draggedId) return;
+        await NoteService.MoveAsync(draggedId, DragDropState.DraggedIsFolder, null, null);
+        await DragDropState.ClearIndicatorAsync();
+        DragDropState.EndDrag();
+        DragDropState.NotifyMoved();
+    }
+    public void Dispose()
+    {
+        DragDropState.Moved -= RefreshTree;
     }
 }

@@ -2,7 +2,7 @@ using Paages.Domain.Enums;
 
 namespace Paages.Domain.Entities;
 
-public class Folder
+public class Folder : ITreeNode
 {
     public Guid Id { get; set; }
     public Guid? ParentId { get; set; }
