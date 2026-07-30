@@ -2,6 +2,7 @@ using Paages.Web.Components;
 using Microsoft.EntityFrameworkCore;
 using Paages.Infrastructure.Data;
 using Paages.Infrastructure.Services;
+using Paages.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +12,9 @@ builder.Services.AddRazorComponents()
 
 builder.Services.AddDbContext<PaagesDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 builder.Services.AddScoped<NoteService>();
+builder.Services.AddScoped<DragDropState>();
 
 var app = builder.Build();
 
@@ -23,7 +26,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
-app.UseHttpsRedirection();
 
 app.UseAntiforgery();
 

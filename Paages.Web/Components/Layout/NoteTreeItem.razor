@@ -1,19 +1,54 @@
+@using Paages.Web.Services
+@implements IDisposable
 @inject NavigationManager Navigation
+@inject DragDropState DragDropState
+@using Paages.Domain.Entities
 
-<div class="sb-tree-row @(Note.Id == ActiveNoteId ? "sb-tree-active" : "")" @onclick="() => OpenNote(Note.Id)">
+<div class="sb-tree-row @(Note.Id == ActiveNoteId ? "sb-tree-active" : "") @(DragDropState.DraggedNodeId == Note.Id || ForceDisabled ? "sb-tree-dragging" : "")"
+     draggable="true"
+     @ondragstart="() => DragDropState.StartDrag(Note.Id, false)"
+     @ondragend="DragDropState.EndDrag"
+     @onclick="() => OpenNote(Note.Id)"
+     id="@($"tree-row-{Note!.Id}")"
+     @ondragover:preventDefault="true"
+     @ondrop="HandleDrop"
+     data-is-folder="false">
     <div class="sb-tree-row-content" style="padding-left: @(PaddingLeft)px">
         <span class="chevron-wrapper"></span>
         <span>@Note.Title</span>
     </div>
-</div>
-
+</div> 
+ 
 @code {
+    [Inject] private NoteService NoteService { get; set; } = null!;
+    [Parameter] public Guid? NextSiblingId { get; set; }
+    [Parameter] public bool ForceDisabled { get; set; } = false;
     [Parameter, EditorRequired] public Note Note { get; set; } = null!;
     [Parameter] public int PaddingLeft { get; set; } = 16;
     [Parameter] public Guid? ActiveNoteId { get; set; }
-
+    protected override void OnInitialized()
+    {
+        DragDropState.Changed += StateHasChanged;
+    }
     void OpenNote(Guid noteId)
     {
         Navigation.NavigateTo($"/notes/{noteId}");
+    }
+    public void Dispose()
+    {
+        DragDropState.Changed -= StateHasChanged;
+    }
+    private async Task HandleDrop(DragEventArgs e)
+    {
+        if (DragDropState.DraggedNodeId is not Guid draggedId) return;
+        
+        double y = await DragDropState.GetRelativeYAsync($"tree-row-{Note.Id}", e.ClientY);
+        var insertBefore = y < 0.5 ? Note.Id : NextSiblingId;
+
+        await NoteService.MoveAsync(draggedId, DragDropState.DraggedIsFolder, Note.FolderId, insertBefore);
+        await DragDropState.ClearIndicatorAsync();
+
+        DragDropState.EndDrag();
+        DragDropState.NotifyMoved();
     }
 }

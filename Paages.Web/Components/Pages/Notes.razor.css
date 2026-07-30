@@ -10,7 +10,17 @@
 
 ::deep .sidebar { grid-row: 1 / 3; }
 ::deep .topbar { grid-column: 2; grid-row: 1; }
-::deep .note-editor { grid-column: 2; grid-row: 2; overflow-y: auto; }
+::deep .note-editor {
+    grid-column: 2;
+    grid-row: 2;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    ::deep .note-editor { scroll-behavior: smooth; }
+}
 
 ::deep .ne-empty {
     grid-column: 2;

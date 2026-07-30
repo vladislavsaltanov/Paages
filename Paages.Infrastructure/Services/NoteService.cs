@@ -61,6 +61,82 @@ public class NoteService
             .ToListAsync();
     }
 
+    public async Task MoveAsync(Guid nodeId, bool isFolder, Guid? newParentId, Guid? insertBeforeId)
+    {
+        // check if folder is a descendent of new parent folder via loop
+        if (isFolder && newParentId.HasValue)
+        {
+            var parent = await _db.Folders.FindAsync(newParentId.Value);
+            while (parent != null)
+            {
+                if (parent.Id == nodeId)
+                    throw new InvalidOperationException("Cannot move a folder into one of its descendants.");
+
+                if (parent.ParentId == null)
+                    break;
+
+                parent = await _db.Folders.FindAsync(parent.ParentId);
+            }
+        }
+
+        ITreeNode? node;
+        Guid? oldParentId;
+
+        if (isFolder)
+        {
+            var folder = await _db.Folders.FindAsync(nodeId);
+            if (folder is null) return;
+            oldParentId = folder.ParentId;
+            folder.ParentId = newParentId;
+            node = folder;
+        }
+        else
+        {
+            var note = await _db.Notes.FindAsync(nodeId);
+            if (note is null) return;
+            oldParentId = note.FolderId;
+            note.FolderId = newParentId;
+            node = note;
+        }
+
+        // insert into new parent's sibling list at the requested position
+        var newSiblings = await LoadSiblingsAsync(newParentId);
+        newSiblings = newSiblings.Where(s => s.Id != nodeId).ToList();
+
+        int index = insertBeforeId is null ? -1 : newSiblings.FindIndex(s => s.Id == insertBeforeId);
+
+        if (index == -1)
+            newSiblings.Add(node); // no target or target not found - append at the end
+        else
+            newSiblings.Insert(index, node);
+
+        for (int i = 0; i < newSiblings.Count; i++)
+            newSiblings[i].SortOrder = i;
+
+        // close the gap left in the old parent's sibling list, if it moved out
+        if (oldParentId != newParentId)
+        {
+            var oldSiblings = await LoadSiblingsAsync(oldParentId);
+            oldSiblings = oldSiblings.Where(s => s.Id != nodeId).ToList();
+
+            for (int i = 0; i < oldSiblings.Count; i++)
+                oldSiblings[i].SortOrder = i;
+        }
+
+        await _db.SaveChangesAsync();
+    }
+
+    private async Task<List<ITreeNode>> LoadSiblingsAsync(Guid? parentId)
+    {
+        var folders = await _db.Folders.Where(f => f.ParentId == parentId).ToListAsync();
+        var notes = await _db.Notes.Where(n => n.FolderId == parentId).ToListAsync();
+
+        return folders.Cast<ITreeNode>()
+            .Concat(notes.Cast<ITreeNode>())
+            .OrderBy(n => n.SortOrder)
+            .ToList();
+    }
+
     public async Task SeedTestDataAsync()
     {
         if (await _db.Notes.AnyAsync()) return;

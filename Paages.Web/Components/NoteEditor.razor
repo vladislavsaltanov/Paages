@@ -14,12 +14,13 @@
         </div>
 
         <div id="@ElementId" class="ne-body"></div>
-
+        
         <div class="ne-save-status @(_showSavedStatus ? "visible" : "")">
-            сохранено @_lastSavedAt.ToString("HH:mm")
+                    сохранено @_lastSavedAt.ToString("HH:mm")
         </div>
     </div>
 </section>
+
 
 @code {
     private readonly string ElementId = $"note-content-area-{Guid.NewGuid():N}";
@@ -33,13 +34,28 @@
     private DateTime _lastSavedAt;
     private bool _showSavedStatus;
 
+    private bool _disposed;
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
 
-        _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/noteEditor.js");
-        _dotNetRef = DotNetObjectReference.Create(this);
-        await _module.InvokeVoidAsync("createEditor", ElementId, Note?.ContentHtml, _dotNetRef);
+        try
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/noteEditor.js");
+            if (_disposed) return;
+
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await _module.InvokeVoidAsync("createEditor", ElementId, Note?.ContentHtml, _dotNetRef);
+        }
+        catch (JSDisconnectedException)
+        {
+            // circuit already gone - nothing to recover
+        }
+        catch (JSException)
+        {
+            // container vanished mid-flight (rapid note switching) - editor just won't mount for this instance
+        }
     }
 
     public async Task<string> GetHtmlAsync()
@@ -76,6 +92,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        _disposed = true;
         _hideStatusCts?.Cancel();
 
         if (_module is null) return;
