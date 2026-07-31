@@ -137,6 +137,13 @@ public class NoteService
             .ToList();
     }
 
+    public async Task<List<Note>> GetNotesByIdsAsync(IEnumerable<Guid> ids)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0) return new List<Note>();
+        return await _db.Notes.Where(n => idList.Contains(n.Id)).ToListAsync();
+    }
+
     public async Task SeedTestDataAsync()
     {
         if (await _db.Notes.AnyAsync()) return;

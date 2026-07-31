@@ -34,7 +34,7 @@
     cursor: pointer;
 }
 
-.tb-tabs { display: flex; gap: 10px; padding-left: 22px; overflow-x: auto; }
+.tb-tabs { display: flex; gap: 10px; padding-left: 22px; overflow-x: auto; overflow-y: hidden; }
 
 .tb-tab {
     flex-shrink: 0;
@@ -52,3 +52,11 @@
 
 .tb-tab-active { border-bottom: 2px solid #ffdb89; font-weight: 500; }
 .tb-tab-inactive { border-bottom: 0.1px solid #ffffff23; font-weight: 400; opacity: .6; -webkit-text-stroke: 0.1px #ffffff23; }
+
+.tb-tab-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

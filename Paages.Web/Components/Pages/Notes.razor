@@ -2,6 +2,9 @@
 @page "/notes/{NoteId:guid}"
 @layout EmptyLayout
 @inject NoteService NoteService
+@using Paages.Web.Services
+@inject TabsState TabsState
+@inject NavigationManager Navigation
 
 <PageTitle>Заметки</PageTitle>
 
@@ -28,5 +31,17 @@
         _note = NoteId.HasValue
             ? await NoteService.GetNoteAsync(NoteId.Value)
             : null;
+
+        if (NoteId.HasValue)
+            TabsState.Open(NoteId.Value);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        await TabsState.LoadFromCookiesAsync();
+        if (NoteId is null && TabsState.ActiveTabId.HasValue)
+            Navigation.NavigateTo($"/notes/{TabsState.ActiveTabId}");
     }
 }
