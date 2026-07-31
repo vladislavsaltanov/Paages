@@ -3,6 +3,7 @@
 @inject NoteService NoteService
 @implements IAsyncDisposable
 @inject IJSRuntime JS
+@inject AppState AppState
 
 <section class="note-editor">
     <div class="ne-inner">
@@ -35,6 +36,12 @@
     private bool _showSavedStatus;
 
     private bool _disposed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Note is not null)
+            AppState.SetLastSaved(Note.UpdatedAt.ToLocalTime());
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -72,6 +79,7 @@
         await NoteService.SaveNoteContentAsync(Note.Id, html);
 
         _lastSavedAt = DateTime.Now;
+        AppState.SetLastSaved(DateTime.Now);
         _showSavedStatus = true;
         StateHasChanged();
 
