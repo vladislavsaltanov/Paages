@@ -10,6 +10,10 @@ let lastInsideRow = null;
 export function initTreeDragOver(containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
+
+    if (container._dragInitDone) return;
+    container._dragInitDone = true;
+
     const line = container.querySelector('.drop-line');
 
     container.addEventListener('dragover', (e) => {

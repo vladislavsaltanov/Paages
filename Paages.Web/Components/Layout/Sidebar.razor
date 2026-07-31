@@ -130,14 +130,27 @@
 
     protected override void OnInitialized()
     {
-        DragDropState.Moved += RefreshTree;
+        DragDropState.Moved += OnMoved;
     }
-    private async void RefreshTree()
+
+    private void OnMoved() => _ = RefreshTreeAsync();
+
+    private async Task RefreshTreeAsync()
     {
-        _folderTree = await NoteService.GetFolderTreeAsync();
-        _notesWithoutFolder = await NoteService.GetNotesWithoutFolderAsync();
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            _folderTree = await NoteService.GetFolderTreeAsync();
+            _notesWithoutFolder = await NoteService.GetNotesWithoutFolderAsync();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error refreshing tree: {ex.Message}");
+            // TODO: log
+        }
     }
+
+    public void Dispose() => DragDropState.Moved -= OnMoved;
 
     protected override async Task OnInitializedAsync()
     {
@@ -163,9 +176,5 @@
         await DragDropState.ClearIndicatorAsync();
         DragDropState.EndDrag();
         DragDropState.NotifyMoved();
-    }
-    public void Dispose()
-    {
-        DragDropState.Moved -= RefreshTree;
     }
 }

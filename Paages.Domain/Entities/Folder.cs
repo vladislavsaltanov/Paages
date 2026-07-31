@@ -11,5 +11,5 @@ public class Folder : ITreeNode
     public List<Note> Notes { get; set; } = new();
     public string Name { get; set; } = string.Empty;
     public bool IsPinned { get; set; }
-    public int SortOrder { get; set; } // TODO
+    public int SortOrder { get; set; }
 }
