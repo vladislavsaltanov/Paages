@@ -10,5 +10,5 @@ public class Note : ITreeNode
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsPinned { get; set; }
-    public int SortOrder { get; set; } // TODO
+    public int SortOrder { get; set; }
 }

@@ -15,6 +15,7 @@ builder.Services.AddDbContext<PaagesDbContext>(options =>
 
 builder.Services.AddScoped<NoteService>();
 builder.Services.AddScoped<DragDropState>();
+builder.Services.AddScoped<AppState>();
 
 var app = builder.Build();
 

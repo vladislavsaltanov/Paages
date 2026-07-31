@@ -610,10 +610,14 @@ export function setHtml(elementId, html) {
     if (entry) entry.quill.clipboard.dangerouslyPasteHTML(html, 'api');
 }
 
-export function destroyEditor(elementId) {
+export async function destroyEditor(elementId) {
     const entry = editors[elementId];
     if (entry) {
-        clearTimeout(entry.saveTimer);
+        if (entry.saveTimer) {
+            clearTimeout(entry.saveTimer);
+            const html = getCleanHtml(entry);
+            await entry.dotNetRef.invokeMethodAsync('OnContentChanged', html);
+        }
         document.removeEventListener('keydown', entry.handleKeydown, { capture: true });
         document.removeEventListener('paste', entry.handlePaste, true);
     }
