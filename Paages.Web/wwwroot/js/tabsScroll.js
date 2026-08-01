@@ -13,10 +13,19 @@ export function initTabsScroll(scrollElementId, rowElementId){
 
     scrollEl.addEventListener('scroll', update);
 
+    const onWheel = (e) => {
+        if (e.deltaY === 0) return;
+        e.preventDefault();
+        scrollEl.scrollLeft += e.deltaY / 2;
+    };
+
+    scrollEl.addEventListener('wheel', onWheel, { passive: false });
+
     const observer = new ResizeObserver(update);
     observer.observe(scrollEl);
 
-    instancies[scrollElementId] = { scrollEl, update, observer };
+    instancies[scrollElementId] = { scrollEl, update, observer, onWheel };
+    
     update();
 }
 
@@ -32,6 +41,7 @@ export function destroyTabsScroll(scrollElementId){
     if (!entry) return;
 
     entry.scrollEl.removeEventListener('scroll', entry.update);
+    entry.scrollEl.removeEventListener('wheel', entry.onWheel);
     entry.observer.disconnect();
     delete instancies[scrollElementId];
 }
