@@ -230,11 +230,12 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
     });
 
     const handleKeydown = (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyS') {
             e.preventDefault();
             triggerSave(elementId);
         }
     };
+
     document.addEventListener('keydown', handleKeydown, { capture: true });
 
     const handlePaste = (e) => {
