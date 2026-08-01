@@ -76,11 +76,18 @@
     {
         TabsState.OnTabsChanged += OnTabsChanged;
         AppState.OnChange += StateHasChanged;
+        AppState.NoteRenamed += OnNoteRenamed;
         await RefreshTitlesAsync();
     }
 
     private void OnTabsChanged() => _ = RefreshTitlesAsync();
 
+    private void OnNoteRenamed(Guid noteId, string newTitle)
+    {
+        if (!_titles.ContainsKey(noteId)) return;
+        _titles[noteId] = newTitle;
+        InvokeAsync(StateHasChanged);
+    }
     private async Task RefreshTitlesAsync()
     {
         var notes = await NoteService.GetNotesByIdsAsync(TabsState.OpenTabsIds);
@@ -103,7 +110,7 @@
     {
         AppState.OnChange -= StateHasChanged;
         TabsState.OnTabsChanged -= OnTabsChanged;
-
+        AppState.NoteRenamed -= OnNoteRenamed;
         if (_scrollModule is not null)
             try
             {

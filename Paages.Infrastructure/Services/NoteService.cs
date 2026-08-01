@@ -136,12 +136,45 @@ public class NoteService
             .OrderBy(n => n.SortOrder)
             .ToList();
     }
-
+    
     public async Task<List<Note>> GetNotesByIdsAsync(IEnumerable<Guid> ids)
     {
         var idList = ids.ToList();
         if (idList.Count == 0) return new List<Note>();
         return await _db.Notes.Where(n => idList.Contains(n.Id)).ToListAsync();
+    }
+
+    public async Task RenameNoteAsync(Guid id, string title)
+    {
+        var note = await _db.Notes.FindAsync(id);
+        if (note is null) return;
+
+        note.Title = string.IsNullOrWhiteSpace(title) ? "Без названия" : title.Trim();
+        note.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task<Note> CreateNoteAsync(Guid? folderId)
+    {
+         var siblings = await LoadSiblingsAsync(folderId);
+
+        foreach (var sibling in siblings)
+            sibling.SortOrder++;
+
+        var note = new Note
+        {
+            Id = Guid.NewGuid(),
+            Title = "Без названия",
+            ContentHtml = "<p></p>",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            FolderId = folderId,
+            SortOrder = 0
+        };
+
+        _db.Notes.Add(note);
+        await _db.SaveChangesAsync();
+        return note;
     }
 
     public async Task SeedTestDataAsync()

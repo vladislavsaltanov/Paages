@@ -20,6 +20,7 @@
 </div> 
  
 @code {
+    [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private NoteService NoteService { get; set; } = null!;
     [Parameter] public Guid? NextSiblingId { get; set; }
     [Parameter] public bool ForceDisabled { get; set; } = false;
@@ -29,6 +30,7 @@
     protected override void OnInitialized()
     {
         DragDropState.Changed += StateHasChanged;
+        AppState.NoteRenamed += OnNoteRenamed;
     }
     void OpenNote(Guid noteId)
     {
@@ -37,6 +39,7 @@
     public void Dispose()
     {
         DragDropState.Changed -= StateHasChanged;
+        AppState.NoteRenamed -= OnNoteRenamed;
     }
     private async Task HandleDrop(DragEventArgs e)
     {
@@ -50,5 +53,11 @@
 
         DragDropState.EndDrag();
         DragDropState.NotifyMoved();
+    }
+    private void OnNoteRenamed(Guid noteId, string newTitle)
+    {
+        if (noteId != Note.Id) return;
+        Note.Title = newTitle;
+        InvokeAsync(StateHasChanged);
     }
 }

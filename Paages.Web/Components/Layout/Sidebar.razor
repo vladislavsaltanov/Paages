@@ -100,7 +100,7 @@
     </div>
 
     <div class="sb-footer">
-        <button class="sb-new-note">
+        <button class="sb-new-note" @onclick="CreateNote">
             <svg viewBox="0 0 12.5 12.5" width="13" height="13"><path fill="#2c2c2e" d="M12.2069 3.0861L9.4144 0.293C9.3215 0.2001 9.2113 0.1264 9.0899 0.0761 8.9686 0.0259 8.8385 0 8.7072 0 8.5759 0 8.4458 0.0259 8.3245 0.0761 8.2031 0.1264 8.0929 0.2001 8 0.293L0.2931 8.0005C0.1999 8.093 0.1259 8.2031 0.0756 8.3245 0.0253 8.4458-0.0004 8.576 0 8.7073V11.5005C0 11.7657 0.1054 12.02 0.2929 12.2076 0.4804 12.3951 0.7348 12.5005 1 12.5005H3.7931C3.9245 12.5009 4.0546 12.4752 4.176 12.4249 4.2973 12.3746 4.4075 12.3006 4.5 12.2073L12.2069 4.5005C12.2998 4.4076 12.3734 4.2974 12.4237 4.176 12.474 4.0547 12.4999 3.9246 12.4999 3.7933 12.4999 3.6619 12.474 3.5319 12.4237 3.4106 12.3734 3.2892 12.2998 3.179 12.2069 3.0861ZM3.7931 11.5005H1V8.7073L6.5 3.2073 9.2931 6.0005 3.7931 11.5005ZM10 5.293L7.2069 2.5005 8.7069 1.0005 11.5 3.793 10 5.293Z" /></svg>
             новая заметка
         </button>
@@ -168,6 +168,13 @@
     private void OpenNote(Guid noteId)
     {
         Navigation.NavigateTo($"/notes/{noteId}");
+    }
+
+    private async Task CreateNote()
+    {
+        var note = await NoteService.CreateNoteAsync(folderId: null);
+        await RefreshTreeAsync();
+        Navigation.NavigateTo($"/notes/{note.Id}");
     }
     private async Task HandleDrop(DragEventArgs e)
     {
