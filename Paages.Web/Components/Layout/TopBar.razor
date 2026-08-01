@@ -1,9 +1,10 @@
-@implements IDisposable
 @inject AppState AppState
 @using Paages.Web.Services
 @inject TabsState TabsState
 @inject NoteService NoteService
 @inject NavigationManager Navigation
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 <header class="topbar">
 
@@ -24,24 +25,52 @@
         </div>
     </div>
 
-    <div class="tb-tabs">
-        @foreach (var id in TabsState.OpenTabsIds)
-        {
-            <div class="tb-tab @(id == TabsState.ActiveTabId ? "tb-tab-active" : "tb-tab-inactive")"
-                @onclick="() => OpenTab(id)">
-                <span class="tb-tab-title">@(_titles.GetValueOrDefault(id, "..."))</span>
-                <span @onclick="() => CloseTab(id)" @onclick:stopPropagation="true">@CloseIcon</span>
-            </div>
-        }
+        <div class="tb-tabs-row" id="tb-tabs-row">
+        <button class="tb-tabs-arrow tb-tabs-arrow-left" @onclick="() => Scroll(-150)">‹</button>
+
+        <div class="tb-tabs" id="tb-tabs-scroll">
+            @foreach (var id in TabsState.OpenTabsIds)
+            {
+                <div class="tb-tab @(id == TabsState.ActiveTabId ? "tb-tab-active" : "tb-tab-inactive")"
+                    @onclick="() => OpenTab(id)">
+                    <span class="tb-tab-title">@(_titles.GetValueOrDefault(id, "..."))</span>
+                    <span @onclick="() => CloseTab(id)" @onclick:stopPropagation="true">@CloseIcon</span>
+                </div>
+            }
+        </div>
+
+        <button class="tb-tabs-arrow tb-tabs-arrow-right" @onclick="() => Scroll(150)">›</button>
     </div>
 
 </header>
 
 @code {
     private Dictionary<Guid, string> _titles = new();
+    private IJSObjectReference? _scrollModule;
+    private bool _scrollInitialized;
     private static readonly MarkupString CloseIcon = new("""
         <svg viewBox="0 0 10 10" width="8" height="8" class="tab-close-icon"><path fill="rgba(255,255,255,0.6)" d="M9.854 9.1465C9.9005 9.193 9.9373 9.2481 9.9625 9.3088 9.9876 9.3695 10.0006 9.4346 10.0006 9.5003 10.0006 9.566 9.9876 9.631 9.9625 9.6917 9.9373 9.7524 9.9005 9.8076 9.854 9.854 9.8076 9.9005 9.7524 9.9373 9.6917 9.9625 9.631 9.9876 9.566 10.0006 9.5003 10.0006 9.4346 10.0006 9.3695 9.9876 9.3088 9.9625 9.2481 9.9373 9.193 9.9005 9.1465 9.854L5.0003 5.7072 0.854 9.854C0.7602 9.9478 0.633 10.0006 0.5003 10.0006 0.3676 10.0006 0.2403 9.9478 0.1465 9.854 0.0527 9.7602 0 9.633 0 9.5003 0 9.3676 0.0527 9.2403 0.1465 9.1465L4.2934 5.0003 0.1465 0.854C0.0527 0.7602 0 0.633 0 0.5003 0 0.3676 0.0527 0.2403 0.1465 0.1465 0.2403 0.0527 0.3676 0 0.5003 0 0.633 0 0.7602 0.0527 0.854 0.1465L5.0003 4.2934 9.1465 0.1465C9.2403 0.0527 9.3676 0 9.5003 0 9.633 0 9.7602 0.0527 9.854 0.1465 9.9478 0.2403 10.0006 0.3676 10.0006 0.5003 10.0006 0.633 9.9478 0.7602 9.854 0.854L5.7072 5.0003 9.854 9.1465Z" /></svg>
         """);
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            _scrollModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/tabsScroll.js");
+        
+        if (_scrollModule is not null && !_scrollInitialized)
+        {
+            _scrollInitialized = true;
+            await _scrollModule.InvokeVoidAsync("initTabsScroll", "tb-tabs-scroll", "tb-tabs-row");
+        }
+    }
+
+    private async Task Scroll(int delta)
+    {
+        if (_scrollModule is null) return;
+        
+        await _scrollModule.InvokeVoidAsync("scrollByAmount", "tb-tabs-scroll", delta);
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -57,6 +86,9 @@
         var notes = await NoteService.GetNotesByIdsAsync(TabsState.OpenTabsIds);
         _titles = notes.ToDictionary(n => n.Id, n => n.Title);
         await InvokeAsync(StateHasChanged);
+
+        if (_scrollModule is not null)
+            await _scrollModule.InvokeVoidAsync("refreshScrollState", "tb-tabs-scroll");
     }
 
     private void OpenTab(Guid id) => Navigation.NavigateTo($"/notes/{id}");
@@ -67,9 +99,16 @@
         Navigation.NavigateTo(next.HasValue ? $"/notes/{next}" : "/notes");
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         AppState.OnChange -= StateHasChanged;
         TabsState.OnTabsChanged -= OnTabsChanged;
+
+        if (_scrollModule is not null)
+        {
+            try { await _scrollModule.InvokeVoidAsync("destroyTabsScroll", "tb-tabs-scroll"); }
+            catch (JSDisconnectedException) { }
+            await _scrollModule.DisposeAsync();
+        }
     }
 }

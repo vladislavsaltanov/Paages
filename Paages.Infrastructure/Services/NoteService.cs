@@ -146,20 +146,20 @@ public class NoteService
 
     public async Task SeedTestDataAsync()
     {
-        if (await _db.Notes.AnyAsync()) return;
+        // if (await _db.Notes.AnyAsync()) return;
 
-        var home = new Folder { Name = "Дом", Id = Guid.NewGuid() };
-        var archive = new Folder { Name = "Архив", Id = Guid.NewGuid(), ParentId = home.Id };
+        //var home = new Folder { Name = "Дом", Id = Guid.NewGuid() };
+        //var archive = new Folder { Name = "Архив", Id = Guid.NewGuid(), ParentId = home.Id };
 
-        _db.Folders.AddRange(home, archive);
+        //_db.Folders.AddRange(home, archive);
 
         _db.Notes.AddRange(
-            new Note { Id = Guid.NewGuid(), Title = "Заметка без папки 1", ContentHtml = "<p>Текст 1</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Note { Id = Guid.NewGuid(), Title = "Заметка без папки 2", ContentHtml = "<p>Текст 2</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Note { Id = Guid.NewGuid(), Title = "Заметка в Доме 1", ContentHtml = "<p>Текст 3</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = home.Id },
-            new Note { Id = Guid.NewGuid(), Title = "Заметка в Доме 2", ContentHtml = "<p>Текст 4</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = home.Id },
-            new Note { Id = Guid.NewGuid(), Title = "Заметка в Архиве 1", ContentHtml = "<p>Текст 5</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = archive.Id },
-            new Note { Id = Guid.NewGuid(), Title = "Заметка в Архиве 2", ContentHtml = "<p>Текст 6</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = archive.Id }
+            new Note { Id = Guid.NewGuid(), Title = "Заметка без папки 5", ContentHtml = "<p>Текст 1</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+            new Note { Id = Guid.NewGuid(), Title = "Заметка без папки 6", ContentHtml = "<p>Текст 2</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
+            // new Note { Id = Guid.NewGuid(), Title = "Заметка в Доме 1", ContentHtml = "<p>Текст 3</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = home.Id },
+            // new Note { Id = Guid.NewGuid(), Title = "Заметка в Доме 2", ContentHtml = "<p>Текст 4</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = home.Id },
+            // new Note { Id = Guid.NewGuid(), Title = "Заметка в Архиве 1", ContentHtml = "<p>Текст 5</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = archive.Id },
+            // new Note { Id = Guid.NewGuid(), Title = "Заметка в Архиве 2", ContentHtml = "<p>Текст 6</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = archive.Id }
         );
 
         await _db.SaveChangesAsync();
