@@ -95,10 +95,10 @@
     min-height: 0;
     overflow-y: auto;
     scrollbar-width: none;
-    scrollbar-gutter: stable
+    scrollbar-gutter: stable;
 }
 
-.sb-tree::-webkit-scrollbar { 
+.sb-tree::-webkit-scrollbar {
     width: 8px;
 }
 
@@ -115,7 +115,6 @@
 .sb-tree:hover {
     scrollbar-width: thin;
     scrollbar-color: #ffffff33 transparent;
-    margin-right: 8px;
 }
 
 .sb-tree:hover::-webkit-scrollbar-thumb {

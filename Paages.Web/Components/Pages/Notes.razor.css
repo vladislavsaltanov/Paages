@@ -14,6 +14,7 @@
     grid-column: 2;
     grid-row: 2;
     overflow-y: auto;
+    scrollbar-gutter: stable;
     display: flex;
     flex-direction: column;
 }
