@@ -19,18 +19,30 @@ public class TabsState
         if (_cookieLoaded)
             return;
 
-        _module = await _js.InvokeAsync<IJSObjectReference>("import", "./js/tabsState.js");
-        var stored = await _module.InvokeAsync<StoredTabs?>("loadTabs");
-        if (stored is null) return;
+        try
+        {
+            _module = await _js.InvokeAsync<IJSObjectReference>("import", "./js/tabsState.js");
+            var stored = await _module.InvokeAsync<StoredTabs?>("loadTabs");
+            _cookieLoaded = true;
+            if (stored is null) return;
 
-        var merged = stored.Tabs.ToList();
-        foreach (var id in OpenTabsIds)
-            if (!merged.Contains(id))
-                merged.Add(id);
+            var merged = stored.Tabs.ToList();
+            foreach (var id in OpenTabsIds)
+                if (!merged.Contains(id))
+                    merged.Add(id);
 
-        OpenTabsIds = merged;
-        ActiveTabId ??= stored.Active;
-        OnTabsChanged?.Invoke();
+            OpenTabsIds = merged;
+            ActiveTabId ??= stored.Active;
+            OnTabsChanged?.Invoke();
+        }
+        catch (JSDisconnectedException) { }
+        catch (JSException)
+        {
+            // corrupted cookie - drop everything except current tab
+            OpenTabsIds = ActiveTabId is Guid id ? new List<Guid> { id } : new List<Guid>();
+            _cookieLoaded = true;
+            await SaveAsync();
+        }
     }
 
     public void Open(Guid id)
