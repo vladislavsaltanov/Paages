@@ -126,8 +126,7 @@
     public async Task OnTitleChanged(string title)
     {
         if (Note is null) return;
-        await NoteService.RenameNoteAsync(Note.Id, title);
-        Note.Title = string.IsNullOrWhiteSpace(title) ? "Без названия" : title.Trim();
+        Note.Title = await NoteService.RenameNoteAsync(Note.Id, title);
         AppState.NotifyNoteRenamed(Note.Id, Note.Title);
     }
 }

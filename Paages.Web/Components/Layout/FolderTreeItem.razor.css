@@ -2,6 +2,7 @@
     cursor: pointer;
     border-radius: 6px;
     margin-top: 2px;
+    margin-right: 8px;
     height: 30px;
     display: flex;
     align-items: center;
@@ -17,6 +18,15 @@
     font-weight: 400;
     color: #fff;
     width: 100%;
+    min-width: 0;
+}
+
+.sb-tree-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+    padding-right: 16px;
 }
 
 .sb-tree-active {

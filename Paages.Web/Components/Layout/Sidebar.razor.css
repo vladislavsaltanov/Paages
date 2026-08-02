@@ -7,6 +7,7 @@
     flex-direction: column;
     scrollbar-width: thin;
     scrollbar-color: #ffffff33 transparent;
+    /* scrollbar-gutter: stable; */
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -90,13 +91,14 @@
 .sb-tree {
     position: relative;
     flex: 1;
-    margin: 15px 10px 0;
+    margin: 15px 2px 0 8px;
     min-height: 0;
     overflow-y: auto;
     scrollbar-width: none;
+    scrollbar-gutter: stable
 }
 
-.sb-tree::-webkit-scrollbar {
+.sb-tree::-webkit-scrollbar { 
     width: 8px;
 }
 
@@ -107,11 +109,13 @@
 .sb-tree::-webkit-scrollbar-thumb {
     background-color: transparent;
     border-radius: 4px;
+    transition: background-color .3s ease;
 }
 
 .sb-tree:hover {
     scrollbar-width: thin;
     scrollbar-color: #ffffff33 transparent;
+    margin-right: 8px;
 }
 
 .sb-tree:hover::-webkit-scrollbar-thumb {

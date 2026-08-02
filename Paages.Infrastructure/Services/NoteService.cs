@@ -136,7 +136,7 @@ public class NoteService
             .OrderBy(n => n.SortOrder)
             .ToList();
     }
-    
+
     public async Task<List<Note>> GetNotesByIdsAsync(IEnumerable<Guid> ids)
     {
         var idList = ids.ToList();
@@ -144,14 +144,17 @@ public class NoteService
         return await _db.Notes.Where(n => idList.Contains(n.Id)).ToListAsync();
     }
 
-    public async Task RenameNoteAsync(Guid id, string title)
+    public async Task<string> RenameNoteAsync(Guid id, string title)
     {
         var note = await _db.Notes.FindAsync(id);
-        if (note is null) return;
+        if (note is null) return title;
 
-        note.Title = string.IsNullOrWhiteSpace(title) ? "Без названия" : title.Trim();
+        title = title?.Trim().Truncate(100) ?? "Без названия";
+
+        note.Title = title;
         note.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
+        return title;
     }
 
     public async Task<Note> CreateNoteAsync(Guid? folderId)
@@ -196,5 +199,15 @@ public class NoteService
         );
 
         await _db.SaveChangesAsync();
+    }
+}
+
+public static class StringExt
+{
+    public static string? Truncate(this string? value, int maxLength, string truncationSuffix = "…")
+    {
+        return value?.Length > maxLength
+            ? value.Substring(0, maxLength) + truncationSuffix
+            : value;
     }
 }
