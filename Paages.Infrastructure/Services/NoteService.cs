@@ -149,12 +149,10 @@ public class NoteService
         var note = await _db.Notes.FindAsync(id);
         if (note is null) return title;
 
-        title = title?.Trim().Truncate(100) ?? "Без названия";
-
-        note.Title = title;
+        note.Title = string.IsNullOrWhiteSpace(title) ? "Без названия" : title.Trim().Truncate(100);
         note.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        return title;
+        return note.Title ?? "Без названия";
     }
 
     public async Task<Note> CreateNoteAsync(Guid? folderId)
