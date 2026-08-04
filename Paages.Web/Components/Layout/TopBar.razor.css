@@ -4,6 +4,7 @@
     background-color: #0d0d0d;
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .tb-row {
@@ -34,8 +35,6 @@
     cursor: pointer;
 }
 
-.tb-tabs { display: flex; gap: 10px; padding-left: 22px; overflow-x: auto; }
-
 .tb-tab {
     flex-shrink: 0;
     width: 220px;
@@ -52,3 +51,45 @@
 
 .tb-tab-active { border-bottom: 2px solid #ffdb89; font-weight: 500; }
 .tb-tab-inactive { border-bottom: 0.1px solid #ffffff23; font-weight: 400; opacity: .6; -webkit-text-stroke: 0.1px #ffffff23; }
+
+.tb-tab-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tb-tabs {
+    display: flex;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.tb-tabs::-webkit-scrollbar {
+    display: none; /* chrome, safari */
+}
+
+.tb-tabs-row { display: flex; align-items: center; min-width: 0; }
+.tb-tabs-arrow {
+    flex-shrink: 0;
+    width: 24px;
+    height: 35px;
+    background: transparent;
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    font-size: 18px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .15s ease;
+}
+.tb-tabs-row.can-left .tb-tabs-arrow-left,
+.tb-tabs-row.can-right .tb-tabs-arrow-right {
+    opacity: 1;
+    pointer-events: auto;
+}

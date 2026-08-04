@@ -3,6 +3,8 @@
 @inject DragDropState DragDropState
 @using Paages.Domain.Entities
 @implements IDisposable
+@inject ContextMenuState ContextMenuState
+@inject AppState AppState
 
 @if (Folder is not null)
 {
@@ -14,7 +16,8 @@
          @ondragend="DragDropState.EndDrag"
          @ondragover:preventDefault="true"
          @ondrop="HandleDrop"
-         @onclick="ToggleExpanded">
+         @onclick="ToggleExpanded"
+         @oncontextmenu="OpenContextMenu" @oncontextmenu:preventDefault="true">
         <div class="sb-tree-row-content" style="padding-left: @(16 + Level * 20)px">
             @if (Folder.Children.Count > 0 || Folder.Notes.Count > 0)
             {
@@ -26,7 +29,7 @@
             {
                 <span class="chevron-wrapper"></span>
             }
-            <span>@Folder.Name</span>
+            <span class="sb-tree-label">@Folder.Name</span>
         </div>
     </div>
 
@@ -94,7 +97,7 @@
 
         await DragDropState.ClearIndicatorAsync();
         DragDropState.EndDrag();
-        DragDropState.NotifyMoved();
+        AppState.NotifyTreeChanged();
     }
 
     private static readonly MarkupString ChevronDown = new("""
@@ -104,5 +107,40 @@
     public void Dispose()
     {
         DragDropState.Changed -= StateHasChanged;
+    }
+
+    private List<ContextMenuEntry> BuildMenu() => new()
+    {
+        new ContextMenuItem("Новая заметка", () => CreateNoteInside()),
+        new ContextMenuItem("Новая папка", () => CreateFolderInside()),
+        new ContextMenuSeparator(),
+        new ContextMenuItem("Открыть", () => { ToggleExpanded(); return Task.CompletedTask; }),
+        new ContextMenuSeparator(),
+        new ContextMenuItem(Folder!.IsPinned ? "Открепить" : "Закрепить", () => NoteService.TogglePinAsync(Folder.Id, true)),
+        new ContextMenuItem("Переименовать", () => Task.CompletedTask), // TODO: inline rename not implemented yet
+        new ContextMenuSeparator(),
+        new ContextMenuItem("Скачать", () => Task.CompletedTask),
+        new ContextMenuItem("Поделиться", () => Task.CompletedTask),
+        new ContextMenuSeparator(),
+        new ContextMenuItem("Удалить", () => NoteService.DeleteFolderAsync(Folder!.Id), Destructive: true)
+    };
+    private async Task CreateNoteInside()
+    {
+        var note = await NoteService.CreateNoteAsync(Folder!.Id);
+        _isExpanded = true;
+        AppState.NotifyTreeChanged();
+        Navigation.NavigateTo($"/notes/{note.Id}");
+    }
+
+    private async Task CreateFolderInside()
+    {
+        await NoteService.CreateFolderAsync(Folder!.Id);
+        _isExpanded = true;
+        AppState.NotifyTreeChanged();
+    }
+
+    private void OpenContextMenu(MouseEventArgs e)
+    {
+        ContextMenuState.Open(e.ClientX, e.ClientY, BuildMenu());
     }
 }

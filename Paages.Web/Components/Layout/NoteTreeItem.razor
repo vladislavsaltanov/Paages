@@ -3,6 +3,7 @@
 @inject NavigationManager Navigation
 @inject DragDropState DragDropState
 @using Paages.Domain.Entities
+@inject ContextMenuState ContextMenuState
 
 <div class="sb-tree-row @(Note.Id == ActiveNoteId ? "sb-tree-active" : "") @(DragDropState.DraggedNodeId == Note.Id || ForceDisabled ? "sb-tree-dragging" : "")"
      draggable="true"
@@ -12,14 +13,16 @@
      id="@($"tree-row-{Note!.Id}")"
      @ondragover:preventDefault="true"
      @ondrop="HandleDrop"
+     @oncontextmenu="OpenContextMenu" @oncontextmenu:preventDefault="true"
      data-is-folder="false">
     <div class="sb-tree-row-content" style="padding-left: @(PaddingLeft)px">
         <span class="chevron-wrapper"></span>
-        <span>@Note.Title</span>
+        <span class="sb-tree-label">@Note.Title</span>
     </div>
 </div> 
  
 @code {
+    [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private NoteService NoteService { get; set; } = null!;
     [Parameter] public Guid? NextSiblingId { get; set; }
     [Parameter] public bool ForceDisabled { get; set; } = false;
@@ -29,6 +32,7 @@
     protected override void OnInitialized()
     {
         DragDropState.Changed += StateHasChanged;
+        AppState.NoteRenamed += OnNoteRenamed;
     }
     void OpenNote(Guid noteId)
     {
@@ -37,6 +41,7 @@
     public void Dispose()
     {
         DragDropState.Changed -= StateHasChanged;
+        AppState.NoteRenamed -= OnNoteRenamed;
     }
     private async Task HandleDrop(DragEventArgs e)
     {
@@ -49,6 +54,32 @@
         await DragDropState.ClearIndicatorAsync();
 
         DragDropState.EndDrag();
-        DragDropState.NotifyMoved();
+        AppState.NotifyTreeChanged();
+    }
+    private void OnNoteRenamed(Guid noteId, string newTitle)
+    {
+        if (noteId != Note.Id) return;
+        Note.Title = newTitle;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private List<ContextMenuEntry> BuildMenu() => new()
+    {
+        new ContextMenuItem("Открыть", () => { OpenNote(Note.Id); return Task.CompletedTask; }),
+        new ContextMenuItem("Открыть в новой вкладке", () => { /* TODO: needs new-tab logic in TabsState */ return Task.CompletedTask; }),
+        new ContextMenuSeparator(),
+        new ContextMenuItem(Note.IsPinned ? "Открепить" : "Закрепить", () => NoteService.TogglePinAsync(Note.Id, false)),
+        new ContextMenuItem("Переименовать", () => Task.CompletedTask), // TODO: focus title input via JS
+        new ContextMenuItem("Дублировать", () => NoteService.DuplicateNoteAsync(Note.Id)),
+        new ContextMenuSeparator(),
+        new ContextMenuItem("Скачать", () => Task.CompletedTask),
+        new ContextMenuItem("Поделиться", () => Task.CompletedTask),
+        new ContextMenuSeparator(),
+        new ContextMenuItem("Удалить", () => NoteService.DeleteNoteAsync(Note.Id), Destructive: true)
+    };
+
+    private void OpenContextMenu(MouseEventArgs e)
+    {
+        ContextMenuState.Open(e.ClientX, e.ClientY, BuildMenu());
     }
 }

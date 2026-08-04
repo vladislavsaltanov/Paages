@@ -5,7 +5,9 @@
     border-right: 0.25px solid #ffffff23;
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #ffffff33 transparent;
+    /* scrollbar-gutter: stable; */
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -86,9 +88,51 @@
     font-size: 14px;
 }
 
-.sb-tree { position: relative; flex: 1; margin: 15px 10px 0; min-height: 0; }
-.sb-tree-divider { display: flex; align-items: center; gap: 6px; height: 8px; }
+.sb-tree {
+    position: relative;
+    flex: 1;
+    margin: 15px 2px 0 8px;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    scrollbar-gutter: stable;
+}
 
+.sb-tree::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sb-tree::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sb-tree::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 4px;
+    transition: background-color .3s ease;
+}
+
+.sb-tree:hover {
+    scrollbar-width: thin;
+    scrollbar-color: #ffffff33 transparent;
+}
+
+.sb-tree:hover::-webkit-scrollbar-thumb {
+    background-color: #ffffff33;
+}
+
+.sb-tree:hover::-webkit-scrollbar-thumb:hover {
+    background-color: #ffffff55;
+}
+
+.sb-tree-divider {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 8px;
+    margin: 15px 10px 0;
+}
 
 .sb-tree-children { position: relative; }
 .sb-tree-guide {

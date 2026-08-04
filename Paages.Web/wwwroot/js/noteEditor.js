@@ -230,11 +230,12 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
     });
 
     const handleKeydown = (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyS') {
             e.preventDefault();
             triggerSave(elementId);
         }
     };
+
     document.addEventListener('keydown', handleKeydown, { capture: true });
 
     const handlePaste = (e) => {
@@ -620,6 +621,47 @@ export async function destroyEditor(elementId) {
         }
         document.removeEventListener('keydown', entry.handleKeydown, { capture: true });
         document.removeEventListener('paste', entry.handlePaste, true);
+
+        if (entry.titleEl) {
+            clearTimeout(entry.titleSaveTimer);
+            entry.titleEl.removeEventListener('input', entry.handleTitleInput);
+            entry.titleEl.removeEventListener('blur', entry.handleTitleBlur);
+            entry.titleEl.removeEventListener('keydown', entry.handleTitleKeydown);
+        }
     }
     delete editors[elementId];
+}
+
+export function bindTitleEditing(elementId, titleElementId, dotNetRef) {
+    const titleEl = document.getElementById(titleElementId);
+    if (!titleEl) return;
+
+    const entry = editors[elementId];
+    if (!entry) return;
+
+    const scheduleTitleSave = () => {
+        clearTimeout(entry.titleSaveTimer);
+        entry.titleSaveTimer = setTimeout(() => {
+            dotNetRef.invokeMethodAsync('OnTitleChanged', titleEl.textContent);
+        }, SAVE_DEBOUNCE_MS);
+    };
+
+    const flushTitleSave = () => {
+        clearTimeout(entry.titleSaveTimer);
+        dotNetRef.invokeMethodAsync('OnTitleChanged', titleEl.textContent);
+    };
+
+    entry.handleTitleInput = () => scheduleTitleSave();
+    entry.handleTitleBlur = () => flushTitleSave();
+    entry.handleTitleKeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            titleEl.blur();
+        }
+    };
+    entry.titleEl = titleEl;
+
+    titleEl.addEventListener('input', entry.handleTitleInput);
+    titleEl.addEventListener('blur', entry.handleTitleBlur);
+    titleEl.addEventListener('keydown', entry.handleTitleKeydown);
 }

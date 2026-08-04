@@ -8,7 +8,7 @@
 <section class="note-editor">
     <div class="ne-inner">
 
-        <h1 class="ne-title">@Note?.Title</h1>
+        <h1 class="ne-title" id="@TitleElementId" contenteditable="true">@Note?.Title</h1>
 
         <div class="ne-meta">
             создано @Note?.CreatedAt.ToLocalTime().ToString("d MMMM yyyy") • изменено @Note?.UpdatedAt.ToLocalTime().ToString("d MMMM yyyy в HH:mm")
@@ -24,6 +24,7 @@
 
 
 @code {
+    private readonly string TitleElementId = $"note-title-{Guid.NewGuid():N}";
     private readonly string ElementId = $"note-content-area-{Guid.NewGuid():N}";
     private IJSObjectReference? _module;
     private DotNetObjectReference<NoteEditor>? _dotNetRef;
@@ -54,6 +55,7 @@
 
             _dotNetRef = DotNetObjectReference.Create(this);
             await _module.InvokeVoidAsync("createEditor", ElementId, Note?.ContentHtml, _dotNetRef);
+            await _module.InvokeVoidAsync("bindTitleEditing", ElementId, TitleElementId, _dotNetRef);
         }
         catch (JSDisconnectedException)
         {
@@ -62,6 +64,10 @@
         catch (JSException)
         {
             // container vanished mid-flight (rapid note switching) - editor just won't mount for this instance
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Unknown error was thrown. " + ex?.Message);
         }
     }
 
@@ -118,5 +124,13 @@
         {
             _dotNetRef?.Dispose();
         }
+    }
+
+    [JSInvokable]
+    public async Task OnTitleChanged(string title)
+    {
+        if (Note is null) return;
+        Note.Title = await NoteService.RenameNoteAsync(Note.Id, title);
+        AppState.NotifyNoteRenamed(Note.Id, Note.Title);
     }
 }
