@@ -5,6 +5,9 @@ public class AppState
     public event Action? OnChange;
     public event Action<Guid, string>? NoteRenamed;
 
+    public event Action? OnTreeChanged;
+    public void NotifyTreeChanged() => OnTreeChanged?.Invoke();
+
     public void SetLastSaved(DateTime time)
     {
         LastSavedAt = time;

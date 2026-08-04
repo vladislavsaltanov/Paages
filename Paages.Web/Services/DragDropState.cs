@@ -15,7 +15,6 @@ public class DragDropState(IJSRuntime js)
     }
 
     public event Action? Changed;
-    public event Action? Moved;
 
     public void StartDrag(Guid nodeId, bool isFolder)
     {
@@ -33,5 +32,4 @@ public class DragDropState(IJSRuntime js)
         DraggedNodeId = null;
         Changed?.Invoke();
     }
-    public void NotifyMoved() => Moved?.Invoke();
 }
