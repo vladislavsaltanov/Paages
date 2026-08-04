@@ -1,9 +1,8 @@
 using Microsoft.JSInterop;
 namespace Paages.Web.Services;
 
-public class TabsState
+public class TabsState(IJSRuntime js)
 {
-    private readonly IJSRuntime _js;
     private IJSObjectReference? _module;
     private bool _cookieLoaded;
 
@@ -12,8 +11,6 @@ public class TabsState
 
     public event Action? OnTabsChanged;
 
-    public TabsState(IJSRuntime js) => _js = js;
-
     public async Task LoadFromCookiesAsync()
     {
         if (_cookieLoaded)
@@ -21,7 +18,7 @@ public class TabsState
 
         try
         {
-            _module = await _js.InvokeAsync<IJSObjectReference>("import", "./js/tabsState.js");
+            _module = await js.InvokeAsync<IJSObjectReference>("import", "./js/tabsState.js");
             var stored = await _module.InvokeAsync<StoredTabs?>("loadTabs");
             _cookieLoaded = true;
             if (stored is null) return;

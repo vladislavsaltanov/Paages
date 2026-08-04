@@ -2,18 +2,15 @@ using Microsoft.JSInterop;
 
 namespace Paages.Web.Services;
 
-public class DragDropState
+public class DragDropState(IJSRuntime js)
 {
     public Guid? DraggedNodeId { get; private set; }
     public bool DraggedIsFolder { get; private set; }
-    private readonly IJSRuntime _js;
     private IJSObjectReference? _module;
-
-    public DragDropState(IJSRuntime js) => _js = js;
 
     public async Task<double> GetRelativeYAsync(string elementId, double clientY)
     {
-        _module ??= await _js.InvokeAsync<IJSObjectReference>("import", "./js/dragDrop.js");
+        _module ??= await js.InvokeAsync<IJSObjectReference>("import", "./js/dragDrop.js");
         return await _module.InvokeAsync<double>("getRelativeY", elementId, clientY);
     }
 
@@ -28,7 +25,7 @@ public class DragDropState
     }
     public async Task ClearIndicatorAsync()
     {
-        _module ??= await _js.InvokeAsync<IJSObjectReference>("import", "./js/dragDrop.js");
+        _module ??= await js.InvokeAsync<IJSObjectReference>("import", "./js/dragDrop.js");
         await _module.InvokeVoidAsync("clearDragIndicator");
     }
     public void EndDrag()
