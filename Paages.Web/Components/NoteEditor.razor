@@ -65,6 +65,10 @@
         {
             // container vanished mid-flight (rapid note switching) - editor just won't mount for this instance
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Unknown error was thrown. " + ex?.Message);
+        }
     }
 
     public async Task<string> GetHtmlAsync()

@@ -13,6 +13,7 @@ public class NoteService
         _db = db;
     }
 
+    #region Get/Load
     public async Task<List<Folder>> GetFoldersAsync()
     {
         return await _db.Folders.ToListAsync();
@@ -27,18 +28,6 @@ public class NoteService
     {
         return await _db.Notes.FindAsync(id);
     }
-
-    public async Task SaveNoteContentAsync(Guid id, string html)
-    {
-        var note = await _db.Notes.FindAsync(id);
-        if (note is null) return;
-
-        note.ContentHtml = html;
-        note.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-    }
-
-
     public async Task<List<Folder>> GetFolderTreeAsync()
     {
         var allFolders = await _db.Folders
@@ -60,7 +49,127 @@ public class NoteService
             .OrderBy(n => n.SortOrder)
             .ToListAsync();
     }
+    public async Task<List<Note>> GetNotesByIdsAsync(IEnumerable<Guid> ids)
+    {
+        var idList = ids.ToList();
+        if (idList.Count == 0) return new List<Note>();
+        return await _db.Notes.Where(n => idList.Contains(n.Id)).ToListAsync();
+    }
+    private async Task<List<ITreeNode>> LoadSiblingsAsync(Guid? parentId)
+    {
+        var folders = await _db.Folders.Where(f => f.ParentId == parentId).ToListAsync();
+        var notes = await _db.Notes.Where(n => n.FolderId == parentId).ToListAsync();
 
+        return folders.Cast<ITreeNode>()
+            .Concat(notes.Cast<ITreeNode>())
+            .OrderBy(n => n.SortOrder)
+            .ToList();
+    }
+    #endregion
+    #region Save
+    public async Task SaveNoteContentAsync(Guid id, string html)
+    {
+        var note = await _db.Notes.FindAsync(id);
+        if (note is null) return;
+
+        note.ContentHtml = html;
+        note.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+    }
+    #endregion
+    #region Create/Duplicate
+    public async Task<Folder> CreateFolderAsync(Guid? parentId)
+    {
+        var siblings = await LoadSiblingsAsync(parentId);
+
+        foreach (var sibling in siblings)
+            sibling.SortOrder++;
+
+        var folder = new Folder
+        {
+            Id = Guid.NewGuid(),
+            Name = "Новая папка",
+            ParentId = parentId,
+            SortOrder = 0
+        };
+
+        _db.Folders.Add(folder);
+        await _db.SaveChangesAsync();
+        return folder;
+    }
+    public async Task<Note> CreateNoteAsync(Guid? folderId)
+    {
+         var siblings = await LoadSiblingsAsync(folderId);
+
+        foreach (var sibling in siblings)
+            sibling.SortOrder++;
+
+        var note = new Note
+        {
+            Id = Guid.NewGuid(),
+            Title = "Без названия",
+            ContentHtml = "<p></p>",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            FolderId = folderId,
+            SortOrder = 0
+        };
+
+        _db.Notes.Add(note);
+        await _db.SaveChangesAsync();
+        return note;
+    }
+    public async Task<Note> DuplicateNoteAsync(Guid id)
+    {
+        var source = await _db.Notes.FindAsync(id);
+        if (source is null) throw new InvalidOperationException("Note not found.");
+
+        var siblings = await LoadSiblingsAsync(source.FolderId);
+        foreach (var sibling in siblings)
+            sibling.SortOrder++;    
+
+        var copy = new Note
+        {
+            Id = Guid.NewGuid(),
+            Title = $"{source.Title} (копия)".Truncate(100)!,
+            ContentHtml = source.ContentHtml,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            FolderId = source.FolderId,
+            SortOrder = 0
+        };
+
+        _db.Notes.Add(copy);
+        await _db.SaveChangesAsync();
+        return copy;
+    }
+    #endregion
+    #region Delete
+    public async Task DeleteNoteAsync(Guid id)
+    {
+        var note = await _db.Notes.FindAsync(id);
+        if (note is null) return;
+
+        await DeleteNodeAsync(note, note.FolderId, _db.Notes);
+    }
+
+    public async Task DeleteFolderAsync(Guid id)
+    {
+        var folder = await _db.Folders.FindAsync(id);
+        if (folder is null) return;
+
+        await DeleteNodeAsync(folder, folder.ParentId, _db.Folders);
+    }
+    private async Task DeleteNodeAsync<T>(T node, Guid? parentId, DbSet<T> set) where T: class, ITreeNode
+    {
+        var siblings = await LoadSiblingsAsync(parentId);
+        set.Remove(node);
+        await ReindexAsync(siblings.Where(s => s.Id != node.Id));
+
+        await _db.SaveChangesAsync();
+    }
+    #endregion
+    #region Move/Pin/Rename
     public async Task MoveAsync(Guid nodeId, bool isFolder, Guid? newParentId, Guid? insertBeforeId)
     {
         // check if folder is a descendent of new parent folder via loop
@@ -125,59 +234,38 @@ public class NoteService
 
         await _db.SaveChangesAsync();
     }
-
-    private async Task<List<ITreeNode>> LoadSiblingsAsync(Guid? parentId)
+    public async Task TogglePinAsync(Guid nodeId, bool isFolder)
     {
-        var folders = await _db.Folders.Where(f => f.ParentId == parentId).ToListAsync();
-        var notes = await _db.Notes.Where(n => n.FolderId == parentId).ToListAsync();
+        if (isFolder)
+        {
+            var folder = await _db.Folders.FindAsync(nodeId);
+            if (folder is null) return;
 
-        return folders.Cast<ITreeNode>()
-            .Concat(notes.Cast<ITreeNode>())
-            .OrderBy(n => n.SortOrder)
-            .ToList();
+            folder.IsPinned = !folder.IsPinned;
+        }
+        else
+        {
+            var note = await _db.Notes.FindAsync(nodeId);
+            if (note is null) return;
+
+            note.IsPinned = !note.IsPinned;
+        }
+
+        await _db.SaveChangesAsync();
     }
-
-    public async Task<List<Note>> GetNotesByIdsAsync(IEnumerable<Guid> ids)
-    {
-        var idList = ids.ToList();
-        if (idList.Count == 0) return new List<Note>();
-        return await _db.Notes.Where(n => idList.Contains(n.Id)).ToListAsync();
-    }
-
     public async Task<string> RenameNoteAsync(Guid id, string title)
     {
         var note = await _db.Notes.FindAsync(id);
         if (note is null) return title;
 
-        note.Title = string.IsNullOrWhiteSpace(title) ? "Без названия" : title.Trim().Truncate(100);
+        note.Title = string.IsNullOrWhiteSpace(title) ? "Без названия" : title.Trim().Truncate(100)!;
         note.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return note.Title ?? "Без названия";
     }
+    #endregion
 
-    public async Task<Note> CreateNoteAsync(Guid? folderId)
-    {
-         var siblings = await LoadSiblingsAsync(folderId);
-
-        foreach (var sibling in siblings)
-            sibling.SortOrder++;
-
-        var note = new Note
-        {
-            Id = Guid.NewGuid(),
-            Title = "Без названия",
-            ContentHtml = "<p></p>",
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            FolderId = folderId,
-            SortOrder = 0
-        };
-
-        _db.Notes.Add(note);
-        await _db.SaveChangesAsync();
-        return note;
-    }
-
+    #region Miscellaneous
     public async Task SeedTestDataAsync()
     {
         // if (await _db.Notes.AnyAsync()) return;
@@ -198,6 +286,13 @@ public class NoteService
 
         await _db.SaveChangesAsync();
     }
+    public async Task ReindexAsync(IEnumerable<ITreeNode> siblings)
+    {
+        var list = siblings.ToList();
+        for (int i = 0; i < list.Count; i++)
+            list[i].SortOrder = i;
+    }
+    #endregion
 }
 
 public static class StringExt
