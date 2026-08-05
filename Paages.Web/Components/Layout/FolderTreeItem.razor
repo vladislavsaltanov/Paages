@@ -17,7 +17,8 @@
          @ondragover:preventDefault="true"
          @ondrop="HandleDrop"
          @onclick="ToggleExpanded"
-         @oncontextmenu="OpenContextMenu" @oncontextmenu:preventDefault="true">
+         @oncontextmenu="OpenContextMenu" @oncontextmenu:preventDefault="true"
+         @oncontextmenu:stopPropagation="true">
         <div class="sb-tree-row-content" style="padding-left: @(16 + Level * 20)px">
             @if (Folder.Children.Count > 0 || Folder.Notes.Count > 0)
             {

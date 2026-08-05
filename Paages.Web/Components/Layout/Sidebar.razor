@@ -4,6 +4,7 @@
 @implements IDisposable
 @inject DragDropState DragDropState
 @inject AppState AppState
+@inject ContextMenuState ContextMenuState
 
 <aside class="sidebar" id="sidebar-tree-root">
 
@@ -82,7 +83,9 @@
             </span>
     </div>
     <div class="drop-line" style="display:none;"></div>
-    <div class="sb-tree" @ondragover:preventDefault="true" @ondrop="HandleDrop">
+    <div class="sb-tree" @ondragover:preventDefault="true" @ondrop="HandleDrop"
+    @oncontextmenu="OpenRootContextMenu" @oncontextmenu:preventDefault="true"
+    >
         
         @{ var list = RootItems.ToList(); }
         @for (int i = 0; i < list.Count; i++)
@@ -184,5 +187,20 @@
         await NoteService.MoveAsync(draggedId, DragDropState.DraggedIsFolder, null, null);
         await DragDropState.ClearIndicatorAsync();
         DragDropState.EndDrag();
+    }
+
+    private void OpenRootContextMenu(MouseEventArgs e)
+    {
+        var entries = new List<ContextMenuEntry>
+        {
+            new ContextMenuItem("Новая заметка", async () =>
+            {
+                var note = await NoteService.CreateNoteAsync(folderId: null);
+                Navigation.NavigateTo($"/notes/{note.Id}");
+            }),
+            new ContextMenuItem("Новая папка", () => NoteService.CreateFolderAsync(parentId: null))
+        };
+
+        ContextMenuState.Open(e.ClientX, e.ClientY, entries);
     }
 }

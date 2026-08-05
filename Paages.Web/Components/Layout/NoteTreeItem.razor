@@ -16,6 +16,7 @@
      @ondragover:preventDefault="true"
      @ondrop="HandleDrop"
      @oncontextmenu="OpenContextMenu" @oncontextmenu:preventDefault="true"
+     @oncontextmenu:stopPropagation="true"
      data-is-folder="false">
     <div class="sb-tree-row-content" style="padding-left: @(PaddingLeft)px">
         <span class="chevron-wrapper"></span>
