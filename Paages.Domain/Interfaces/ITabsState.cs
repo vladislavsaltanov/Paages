@@ -9,4 +9,5 @@ public interface ITabsState
 
     void Open(Guid id);
     Guid? Close(Guid id);
+    Task LoadFromCookiesAsync();
 }
