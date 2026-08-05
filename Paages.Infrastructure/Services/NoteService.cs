@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Paages.Domain.Entities;
 using Paages.Infrastructure.Data;
-
+using Paages.Domain.Interfaces;
 namespace Paages.Infrastructure.Services;
 
-public class NoteService(PaagesDbContext db)
+public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsState)
 {
     #region Get/Load
     public async Task<List<Folder>> GetFoldersAsync()
@@ -156,10 +156,19 @@ public class NoteService(PaagesDbContext db)
     private async Task DeleteNodeAsync<T>(T node, Guid? parentId, DbSet<T> set) where T: class, ITreeNode
     {
         var siblings = await LoadSiblingsAsync(parentId);
+
         set.Remove(node);
         Reindex(siblings.Where(s => s.Id != node.Id));
 
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
+
+        try
+        {
+            if (node is Note note)
+                tabsState.Close(note.Id);
+        } 
+        catch { /* there wasnt an open tab for this note, so nothing to close */ }
     }
     #endregion
     #region Move/Pin/Rename

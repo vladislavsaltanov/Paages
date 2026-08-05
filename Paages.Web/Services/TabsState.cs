@@ -1,7 +1,8 @@
 using Microsoft.JSInterop;
 namespace Paages.Web.Services;
+using Paages.Domain.Interfaces;
 
-public class TabsState(IJSRuntime js)
+public class TabsState(IJSRuntime js) : ITabsState
 {
     private IJSObjectReference? _module;
     private bool _cookieLoaded;
