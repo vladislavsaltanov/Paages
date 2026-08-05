@@ -5,6 +5,7 @@
 @implements IDisposable
 @inject ContextMenuState ContextMenuState
 @inject AppState AppState
+@inject ConfirmDialogState ConfirmDialogState
 
 @if (Folder is not null)
 {
@@ -123,7 +124,16 @@
         new ContextMenuItem("Скачать", () => Task.CompletedTask),
         new ContextMenuItem("Поделиться", () => Task.CompletedTask),
         new ContextMenuSeparator(),
-        new ContextMenuItem("Удалить", () => NoteService.DeleteFolderAsync(Folder!.Id), Destructive: true)
+        new ContextMenuItem("Удалить", () =>
+        {
+            var hasContent = Folder!.Children.Count > 0 || Folder.Notes.Count > 0;
+            var message = hasContent
+                ? $"Удалить папку «{Folder.Name}» и всё её содержимое?"
+                : $"Удалить папку «{Folder.Name}»?";
+
+            ConfirmDialogState.Open(message, () => NoteService.DeleteFolderAsync(Folder.Id));
+            return Task.CompletedTask;
+        }, Destructive: true)    
     };
     private async Task CreateNoteInside()
     {

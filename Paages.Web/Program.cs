@@ -19,6 +19,7 @@ builder.Services.AddScoped<DragDropState>();
 builder.Services.AddScoped<AppState>();
 builder.Services.AddScoped<ITabsState, TabsState>();
 builder.Services.AddScoped<ContextMenuState>();
+builder.Services.AddScoped<ConfirmDialogState>();
 builder.Services.AddServerSideBlazor(options => options.DetailedErrors = true);
 
 var app = builder.Build();

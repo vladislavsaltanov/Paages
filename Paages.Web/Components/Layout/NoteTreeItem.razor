@@ -6,6 +6,7 @@
 @using Paages.Domain.Entities
 @inject ContextMenuState ContextMenuState
 @inject ITabsState TabsState
+@inject ConfirmDialogState ConfirmDialogState
 
 <div class="sb-tree-row @(Note.Id == ActiveNoteId ? "sb-tree-active" : "") @(DragDropState.DraggedNodeId == Note.Id || ForceDisabled ? "sb-tree-dragging" : "")"
      draggable="true"
@@ -77,8 +78,12 @@
         new ContextMenuItem("Скачать", () => Task.CompletedTask),
         new ContextMenuItem("Поделиться", () => Task.CompletedTask),
         new ContextMenuSeparator(),
-        new ContextMenuItem("Удалить", () => NoteService.DeleteNoteAsync(Note.Id), Destructive: true)
-    };
+        new ContextMenuItem("Удалить", () =>
+        {
+            ConfirmDialogState.Open($"Удалить заметку «{Note.Title}»?", () => NoteService.DeleteNoteAsync(Note.Id));
+            return Task.CompletedTask;
+        }, Destructive: true)
+};
 
     private void OpenContextMenu(MouseEventArgs e)
     {
