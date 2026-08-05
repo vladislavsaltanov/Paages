@@ -1,9 +1,13 @@
 @using Paages.Web.Services
+@using Paages.Domain.Interfaces
 @implements IDisposable
 @inject NavigationManager Navigation
 @inject DragDropState DragDropState
 @using Paages.Domain.Entities
 @inject ContextMenuState ContextMenuState
+@inject ITabsState TabsState
+@inject ConfirmDialogState ConfirmDialogState
+@inject IJSRuntime JS
 
 <div class="sb-tree-row @(Note.Id == ActiveNoteId ? "sb-tree-active" : "") @(DragDropState.DraggedNodeId == Note.Id || ForceDisabled ? "sb-tree-dragging" : "")"
      draggable="true"
@@ -14,14 +18,30 @@
      @ondragover:preventDefault="true"
      @ondrop="HandleDrop"
      @oncontextmenu="OpenContextMenu" @oncontextmenu:preventDefault="true"
+     @oncontextmenu:stopPropagation="true"
      data-is-folder="false">
     <div class="sb-tree-row-content" style="padding-left: @(PaddingLeft)px">
         <span class="chevron-wrapper"></span>
-        <span class="sb-tree-label">@Note.Title</span>
+            @if (_isRenaming)
+            {
+                <input class="sb-tree-rename-input"
+                    @ref="_renameInputRef"
+                    id="@($"rename-input-{Note!.Id}")"
+                    @bind="_renameValue"
+                    @bind:event="oninput"
+                    @onclick:stopPropagation="true"
+                    @onblur="SubmitRename"
+                    @onkeydown="HandleRenameKeydown" />
+            }
+            else
+            {
+                <span class="sb-tree-label">@Note.Title</span>
+            }
     </div>
 </div> 
  
 @code {
+    private ElementReference _renameInputRef;
     [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private NoteService NoteService { get; set; } = null!;
     [Parameter] public Guid? NextSiblingId { get; set; }
@@ -29,6 +49,49 @@
     [Parameter, EditorRequired] public Note Note { get; set; } = null!;
     [Parameter] public int PaddingLeft { get; set; } = 16;
     [Parameter] public Guid? ActiveNoteId { get; set; }
+
+    private bool _isRenaming, _wasRenaming;
+    private string _renameValue = "";
+
+    private void StartRename()
+    {
+        _renameValue = Note!.Title;
+        _isRenaming = true;
+        StateHasChanged();
+    }
+
+    private async Task SubmitRename(FocusEventArgs e)
+    {
+        if (!_isRenaming) return;
+
+        _isRenaming = false;
+        await NoteService.RenameNoteAsync(Note!.Id, _renameValue);
+    }
+
+    private async Task HandleRenameKeydown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            _isRenaming = false;
+            await NoteService.RenameNoteAsync(Note!.Id, _renameValue);
+        }
+        else if (e.Key == "Escape")
+        {
+            _isRenaming = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_isRenaming && !_wasRenaming)
+        {
+            await _renameInputRef.FocusAsync();
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/treeRename.js");
+            await module.InvokeVoidAsync("selectAll", _renameInputRef);
+        }
+        _wasRenaming = _isRenaming;
+    }
+
     protected override void OnInitialized()
     {
         DragDropState.Changed += StateHasChanged;
@@ -54,7 +117,6 @@
         await DragDropState.ClearIndicatorAsync();
 
         DragDropState.EndDrag();
-        AppState.NotifyTreeChanged();
     }
     private void OnNoteRenamed(Guid noteId, string newTitle)
     {
@@ -66,17 +128,21 @@
     private List<ContextMenuEntry> BuildMenu() => new()
     {
         new ContextMenuItem("Открыть", () => { OpenNote(Note.Id); return Task.CompletedTask; }),
-        new ContextMenuItem("Открыть в новой вкладке", () => { /* TODO: needs new-tab logic in TabsState */ return Task.CompletedTask; }),
+        new ContextMenuItem("Открыть в новой вкладке", () => { TabsState.OpenBackground(Note.Id); return Task.CompletedTask; }),
         new ContextMenuSeparator(),
         new ContextMenuItem(Note.IsPinned ? "Открепить" : "Закрепить", () => NoteService.TogglePinAsync(Note.Id, false)),
-        new ContextMenuItem("Переименовать", () => Task.CompletedTask), // TODO: focus title input via JS
-        new ContextMenuItem("Дублировать", () => NoteService.DuplicateNoteAsync(Note.Id)),
+        new ContextMenuItem("Переименовать", () => { StartRename(); return Task.CompletedTask; }), // TODO: focus title input via JS
+        new ContextMenuItem("Дублировать", () => { return NoteService.DuplicateNoteAsync(Note.Id); }),
         new ContextMenuSeparator(),
         new ContextMenuItem("Скачать", () => Task.CompletedTask),
         new ContextMenuItem("Поделиться", () => Task.CompletedTask),
         new ContextMenuSeparator(),
-        new ContextMenuItem("Удалить", () => NoteService.DeleteNoteAsync(Note.Id), Destructive: true)
-    };
+        new ContextMenuItem("Удалить", () =>
+        {
+            ConfirmDialogState.Open($"Удалить заметку «{Note.Title}»?", () => NoteService.DeleteNoteAsync(Note.Id));
+            return Task.CompletedTask;
+        }, Destructive: true)
+};
 
     private void OpenContextMenu(MouseEventArgs e)
     {

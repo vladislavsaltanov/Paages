@@ -2,8 +2,8 @@
 @page "/notes/{NoteId:guid}"
 @layout EmptyLayout
 @inject NoteService NoteService
-@using Paages.Web.Services
-@inject TabsState TabsState
+@using Paages.Domain.Interfaces
+@inject ITabsState TabsState
 @inject NavigationManager Navigation
 
 <PageTitle>Заметки</PageTitle>

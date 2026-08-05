@@ -665,3 +665,9 @@ export function bindTitleEditing(elementId, titleElementId, dotNetRef) {
     titleEl.addEventListener('blur', entry.handleTitleBlur);
     titleEl.addEventListener('keydown', entry.handleTitleKeydown);
 }
+
+export function setTitleText(titleElementId, title) {
+    const el = document.getElementById(titleElementId);
+    if (!el) return;
+    el.textContent = title;
+}

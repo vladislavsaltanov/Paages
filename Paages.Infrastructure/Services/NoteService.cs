@@ -1,10 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using Paages.Domain.Entities;
 using Paages.Infrastructure.Data;
-
+using Paages.Domain.Interfaces;
 namespace Paages.Infrastructure.Services;
 
-public class NoteService(PaagesDbContext db)
+public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsState)
 {
     #region Get/Load
     public async Task<List<Folder>> GetFoldersAsync()
@@ -88,6 +88,7 @@ public class NoteService(PaagesDbContext db)
 
         db.Folders.Add(folder);
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
         return folder;
     }
     public async Task<Note> CreateNoteAsync(Guid? folderId)
@@ -110,6 +111,7 @@ public class NoteService(PaagesDbContext db)
 
         db.Notes.Add(note);
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
         return note;
     }
     public async Task<Note> DuplicateNoteAsync(Guid id)
@@ -134,6 +136,7 @@ public class NoteService(PaagesDbContext db)
 
         db.Notes.Add(copy);
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
         return copy;
     }
     #endregion
@@ -144,6 +147,7 @@ public class NoteService(PaagesDbContext db)
         if (note is null) return;
 
         await DeleteNodeAsync(note, note.FolderId, db.Notes);
+        appState.NotifyTreeChanged();
     }
 
     public async Task DeleteFolderAsync(Guid id)
@@ -152,17 +156,27 @@ public class NoteService(PaagesDbContext db)
         if (folder is null) return;
 
         await DeleteNodeAsync(folder, folder.ParentId, db.Folders);
+        appState.NotifyTreeChanged();
     }
     private async Task DeleteNodeAsync<T>(T node, Guid? parentId, DbSet<T> set) where T: class, ITreeNode
     {
         var siblings = await LoadSiblingsAsync(parentId);
+
         set.Remove(node);
         Reindex(siblings.Where(s => s.Id != node.Id));
 
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
+
+        try
+        {
+            if (node is Note note)
+                tabsState.Close(note.Id);
+        } 
+        catch { /* there wasnt an open tab for this note, so nothing to close */ }
     }
     #endregion
-    #region Move/Pin/Rename
+    #region Move/Pin
     public async Task MoveAsync(Guid nodeId, bool isFolder, Guid? newParentId, Guid? insertBeforeId)
     {
         // check if folder is a descendent of new parent folder via loop
@@ -226,6 +240,7 @@ public class NoteService(PaagesDbContext db)
         }
 
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
     }
     public async Task TogglePinAsync(Guid nodeId, bool isFolder)
     {
@@ -245,7 +260,10 @@ public class NoteService(PaagesDbContext db)
         }
 
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
     }
+    #endregion
+    #region Rename
     public async Task<string> RenameNoteAsync(Guid id, string title)
     {
         var note = await db.Notes.FindAsync(id);
@@ -254,7 +272,19 @@ public class NoteService(PaagesDbContext db)
         note.Title = string.IsNullOrWhiteSpace(title) ? "Без названия" : title.Trim().Truncate(100)!;
         note.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
+        appState.NotifyNoteRenamed(note.Id, note.Title);
         return note.Title ?? "Без названия";
+    }
+    public async Task<string> RenameFolderAsync(Guid id, string name)
+    {
+        var folder = await db.Folders.FindAsync(id);
+        if (folder is null) return name;
+
+        folder.Name = string.IsNullOrWhiteSpace(name) ? "Новая папка" : name.Trim().Truncate(100)!;
+        await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
+        return folder.Name;
     }
     #endregion
 

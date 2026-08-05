@@ -1,0 +1,29 @@
+@using Paages.Web.Services
+@inject ConfirmDialogState DialogState
+@implements IDisposable
+
+@if (DialogState.IsOpen)
+{
+    <div class="confirm-overlay" @onclick="DialogState.Close">
+        <div class="confirm-box" @onclick:stopPropagation="true">
+            <p class="confirm-message">@DialogState.Message</p>
+            <div class="confirm-actions">
+                <button class="confirm-cancel" @onclick="DialogState.Close">Отмена</button>
+                <button class="confirm-delete" @onclick="Confirm">Удалить</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => DialogState.OnChange += StateHasChanged;
+
+    private async Task Confirm()
+    {
+        var action = DialogState.OnConfirm;
+        DialogState.Close();
+        if (action is not null) await action();
+    }
+
+    public void Dispose() => DialogState.OnChange -= StateHasChanged;
+}

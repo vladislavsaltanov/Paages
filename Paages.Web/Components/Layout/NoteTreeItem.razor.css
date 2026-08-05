@@ -41,3 +41,13 @@
     opacity: 0.4;
     pointer-events: none;
 }
+.sb-tree-rename-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font: inherit;
+    padding: 0;
+    width: 100%;
+    padding-right: 16px;
+}

@@ -1,0 +1,60 @@
+@using Paages.Web.Services
+@inject ContextMenuState MenuState
+@inject IJSRuntime JS
+@implements IDisposable
+
+@if (MenuState.IsOpen)
+{
+    <div class="ctx-menu" id="ctx-menu-root" style="left: @(MenuState.X)px; top: @(MenuState.Y)px">
+        @foreach (var entry in MenuState.Entries!)
+        {
+            @if (entry is ContextMenuSeparator)
+            {
+                <div class="ctx-menu-separator"></div>
+            }
+            else if (entry is ContextMenuItem item)
+            {
+                <button class="ctx-menu-item @(item.Destructive ? "ctx-menu-destructive" : "")" @onclick="() => Invoke(item)">
+                    @if (item.Icon is not null)
+                    {
+                        <span class="ctx-menu-icon">@item.Icon</span>
+                    }
+                    <span>@item.label</span>
+                </button>
+            }
+        }
+    </div>
+}
+
+@code {
+    private IJSObjectReference? _module;
+    protected override void OnInitialized()
+    {
+        MenuState.OnChange += HandleStateChanged;
+    }
+
+    private void HandleStateChanged() => InvokeAsync(StateHasChanged);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/contextMenu.js");
+            await _module.InvokeVoidAsync("initOutsideClose", "ctx-menu-root", DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public void CloseFromJs() => MenuState.Close();
+
+    private async Task Invoke(ContextMenuItem item)
+    {
+        MenuState.Close();
+        await item.onClick();
+    }
+
+    public void Dispose()
+    {
+        MenuState.OnChange -= HandleStateChanged;
+    }
+}

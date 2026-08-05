@@ -9,7 +9,7 @@ public record ContextMenuSeparator() : ContextMenuEntry;
 
 public class ContextMenuState
 {
-    public List<ContextMenuEntry>? Entries { get; private set; } = new();
+    public List<ContextMenuEntry>? Entries { get; private set; }
     public double X { get; private set; }
     public double Y { get; private set; }
     public bool IsOpen => Entries is not null;

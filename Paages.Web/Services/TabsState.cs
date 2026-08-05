@@ -1,7 +1,8 @@
 using Microsoft.JSInterop;
 namespace Paages.Web.Services;
+using Paages.Domain.Interfaces;
 
-public class TabsState(IJSRuntime js)
+public class TabsState(IJSRuntime js) : ITabsState
 {
     private IJSObjectReference? _module;
     private bool _cookieLoaded;
@@ -73,6 +74,15 @@ public class TabsState(IJSRuntime js)
     {
         if (_module is null) return;
         await _module.InvokeVoidAsync("saveTabs", OpenTabsIds, ActiveTabId);
+    }
+
+    public void OpenBackground(Guid id)
+    {
+        if (!OpenTabsIds.Contains(id))
+            OpenTabsIds.Add(id);
+
+        OnTabsChanged?.Invoke();
+        _ = SaveAsync();
     }
 
     private record StoredTabs(List<Guid> Tabs, Guid? Active);
