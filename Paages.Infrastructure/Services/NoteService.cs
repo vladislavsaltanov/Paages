@@ -270,7 +270,19 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         note.Title = string.IsNullOrWhiteSpace(title) ? "Без названия" : title.Trim().Truncate(100)!;
         note.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
+        appState.NotifyNoteRenamed(note.Id, note.Title);
         return note.Title ?? "Без названия";
+    }
+    public async Task<string> RenameFolderAsync(Guid id, string name)
+    {
+        var folder = await db.Folders.FindAsync(id);
+        if (folder is null) return name;
+
+        folder.Name = string.IsNullOrWhiteSpace(name) ? "Новая папка" : name.Trim().Truncate(100)!;
+        await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
+        return folder.Name;
     }
     #endregion
 

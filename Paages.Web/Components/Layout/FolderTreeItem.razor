@@ -6,6 +6,7 @@
 @inject ContextMenuState ContextMenuState
 @inject AppState AppState
 @inject ConfirmDialogState ConfirmDialogState
+@inject IJSRuntime JS
 
 @if (Folder is not null)
 {
@@ -31,7 +32,20 @@
             {
                 <span class="chevron-wrapper"></span>
             }
-            <span class="sb-tree-label">@Folder.Name</span>
+            @if (_isRenaming)
+            {
+                <input class="sb-tree-rename-input"
+                    id="@($"rename-input-{Folder!.Id}")"
+                    @bind="_renameValue"
+                    @bind:event="oninput"
+                    @onclick:stopPropagation="true"
+                    @onblur="SubmitRename"
+                    @onkeydown="HandleRenameKeydown" />
+            }
+            else
+            {
+                <span class="sb-tree-label">@Folder!.Name</span>
+            }
         </div>
     </div>
 
@@ -69,6 +83,8 @@
     [Parameter] public Guid? ActiveNoteId { get; set; }  
     private bool _isExpanded = true;
     private bool IsActive => false;
+    private bool _isRenaming, _wasRenaming;
+    private string _renameValue = "";
 
     protected override void OnInitialized()
     {
@@ -119,7 +135,7 @@
         new ContextMenuItem("Открыть", () => { ToggleExpanded(); return Task.CompletedTask; }),
         new ContextMenuSeparator(),
         new ContextMenuItem(Folder!.IsPinned ? "Открепить" : "Закрепить", () => NoteService.TogglePinAsync(Folder.Id, true)),
-        new ContextMenuItem("Переименовать", () => Task.CompletedTask), // TODO: inline rename not implemented yet
+        new ContextMenuItem("Переименовать", () => { StartRename(); return Task.CompletedTask; }),
         new ContextMenuSeparator(),
         new ContextMenuItem("Скачать", () => Task.CompletedTask),
         new ContextMenuItem("Поделиться", () => Task.CompletedTask),
@@ -152,5 +168,42 @@
     private void OpenContextMenu(MouseEventArgs e)
     {
         ContextMenuState.Open(e.ClientX, e.ClientY, BuildMenu());
+    }
+
+    private void StartRename()
+    {
+        _renameValue = Folder!.Name;
+        _isRenaming = true;
+    }
+
+    private async Task SubmitRename(FocusEventArgs e)
+    {
+        if (!_isRenaming) return;
+
+        _isRenaming = false;
+        await NoteService.RenameFolderAsync(Folder!.Id, _renameValue);
+    }
+
+    private async Task HandleRenameKeydown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            _isRenaming = false;
+            await NoteService.RenameFolderAsync(Folder!.Id, _renameValue);
+        }
+        else if (e.Key == "Escape")
+        {
+            _isRenaming = false;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_isRenaming && !_wasRenaming)
+        {
+            var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/treeRename.js");
+            await module.InvokeVoidAsync("focusAndSelect", $"rename-input-{Folder!.Id}");
+        }
+        _wasRenaming = _isRenaming;
     }
 }

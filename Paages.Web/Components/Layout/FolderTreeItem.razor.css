@@ -44,3 +44,13 @@
 }
 
 .chevron-collapsed { transform: rotate(-90deg); }
+
+.sb-tree-rename-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #fff;
+    font: inherit;
+    padding: 0;
+    width: 100%;
+}
