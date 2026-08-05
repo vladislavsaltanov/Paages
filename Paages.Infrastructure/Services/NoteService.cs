@@ -88,6 +88,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
         db.Folders.Add(folder);
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
         return folder;
     }
     public async Task<Note> CreateNoteAsync(Guid? folderId)
@@ -110,6 +111,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
         db.Notes.Add(note);
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
         return note;
     }
     public async Task<Note> DuplicateNoteAsync(Guid id)
@@ -134,6 +136,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
         db.Notes.Add(copy);
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
         return copy;
     }
     #endregion
@@ -144,6 +147,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         if (note is null) return;
 
         await DeleteNodeAsync(note, note.FolderId, db.Notes);
+        appState.NotifyTreeChanged();
     }
 
     public async Task DeleteFolderAsync(Guid id)
@@ -152,6 +156,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         if (folder is null) return;
 
         await DeleteNodeAsync(folder, folder.ParentId, db.Folders);
+        appState.NotifyTreeChanged();
     }
     private async Task DeleteNodeAsync<T>(T node, Guid? parentId, DbSet<T> set) where T: class, ITreeNode
     {
@@ -235,6 +240,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         }
 
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
     }
     public async Task TogglePinAsync(Guid nodeId, bool isFolder)
     {
@@ -254,6 +260,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         }
 
         await db.SaveChangesAsync();
+        appState.NotifyTreeChanged();
     }
     public async Task<string> RenameNoteAsync(Guid id, string title)
     {

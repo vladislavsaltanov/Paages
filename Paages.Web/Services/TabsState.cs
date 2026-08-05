@@ -76,5 +76,14 @@ public class TabsState(IJSRuntime js) : ITabsState
         await _module.InvokeVoidAsync("saveTabs", OpenTabsIds, ActiveTabId);
     }
 
+    public void OpenBackground(Guid id)
+    {
+        if (!OpenTabsIds.Contains(id))
+            OpenTabsIds.Add(id);
+
+        OnTabsChanged?.Invoke();
+        _ = SaveAsync();
+    }
+
     private record StoredTabs(List<Guid> Tabs, Guid? Active);
 }

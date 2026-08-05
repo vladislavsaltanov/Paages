@@ -176,7 +176,6 @@
     private async Task CreateNote()
     {
         var note = await NoteService.CreateNoteAsync(folderId: null);
-        await RefreshTreeAsync();
         Navigation.NavigateTo($"/notes/{note.Id}");
     }
     private async Task HandleDrop(DragEventArgs e)
@@ -185,6 +184,5 @@
         await NoteService.MoveAsync(draggedId, DragDropState.DraggedIsFolder, null, null);
         await DragDropState.ClearIndicatorAsync();
         DragDropState.EndDrag();
-        AppState.NotifyTreeChanged();
     }
 }
