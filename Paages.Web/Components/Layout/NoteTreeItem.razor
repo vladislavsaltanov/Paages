@@ -25,6 +25,7 @@
             @if (_isRenaming)
             {
                 <input class="sb-tree-rename-input"
+                    @ref="_renameInputRef"
                     id="@($"rename-input-{Note!.Id}")"
                     @bind="_renameValue"
                     @bind:event="oninput"
@@ -40,6 +41,7 @@
 </div> 
  
 @code {
+    private ElementReference _renameInputRef;
     [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private NoteService NoteService { get; set; } = null!;
     [Parameter] public Guid? NextSiblingId { get; set; }
@@ -55,6 +57,7 @@
     {
         _renameValue = Note!.Title;
         _isRenaming = true;
+        StateHasChanged();
     }
 
     private async Task SubmitRename(FocusEventArgs e)
@@ -77,12 +80,14 @@
             _isRenaming = false;
         }
     }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_isRenaming && !_wasRenaming)
         {
+            await _renameInputRef.FocusAsync();
             var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/treeRename.js");
-            await module.InvokeVoidAsync("focusAndSelect", $"rename-input-{Note!.Id}");
+            await module.InvokeVoidAsync("selectAll", _renameInputRef);
         }
         _wasRenaming = _isRenaming;
     }

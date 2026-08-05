@@ -176,7 +176,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         catch { /* there wasnt an open tab for this note, so nothing to close */ }
     }
     #endregion
-    #region Move/Pin/Rename
+    #region Move/Pin
     public async Task MoveAsync(Guid nodeId, bool isFolder, Guid? newParentId, Guid? insertBeforeId)
     {
         // check if folder is a descendent of new parent folder via loop
@@ -262,6 +262,8 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         await db.SaveChangesAsync();
         appState.NotifyTreeChanged();
     }
+    #endregion
+    #region Rename
     public async Task<string> RenameNoteAsync(Guid id, string title)
     {
         var note = await db.Notes.FindAsync(id);

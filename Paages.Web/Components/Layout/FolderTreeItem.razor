@@ -35,7 +35,7 @@
             @if (_isRenaming)
             {
                 <input class="sb-tree-rename-input"
-                    id="@($"rename-input-{Folder!.Id}")"
+                    @ref="_renameInputRef"
                     @bind="_renameValue"
                     @bind:event="oninput"
                     @onclick:stopPropagation="true"
@@ -72,6 +72,7 @@
 }
 
 @code {
+    private ElementReference _renameInputRef;
     [Inject] private NoteService NoteService { get; set; } = null!;
     [Parameter] public Guid? NextSiblingId { get; set; }
     [Parameter] public bool ForceDisabled { get; set; } = false; // true if folder is inactive during drag-and-drop operation
@@ -174,6 +175,7 @@
     {
         _renameValue = Folder!.Name;
         _isRenaming = true;
+        StateHasChanged();
     }
 
     private async Task SubmitRename(FocusEventArgs e)
@@ -201,8 +203,9 @@
     {
         if (_isRenaming && !_wasRenaming)
         {
+            await _renameInputRef.FocusAsync();
             var module = await JS.InvokeAsync<IJSObjectReference>("import", "./js/treeRename.js");
-            await module.InvokeVoidAsync("focusAndSelect", $"rename-input-{Folder!.Id}");
+            await module.InvokeVoidAsync("selectAll", _renameInputRef);
         }
         _wasRenaming = _isRenaming;
     }
