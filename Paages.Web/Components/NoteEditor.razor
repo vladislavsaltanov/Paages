@@ -48,10 +48,7 @@
 
     private async void OnNoteRenamedExternally(Guid noteId, string newTitle)
     {
-        Console.WriteLine($"[DEBUG] OnNoteRenamedExternally called: noteId={noteId}, Note?.Id={Note?.Id}, newTitle={newTitle}, module={_module is not null}");
-        
         if (Note is null || noteId != Note.Id) return;
-        if (Note.Title == newTitle) return;
 
         Note.Title = newTitle;
 
