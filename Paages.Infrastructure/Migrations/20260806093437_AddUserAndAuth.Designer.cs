@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Paages.Infrastructure.Data;
 
@@ -10,9 +11,11 @@ using Paages.Infrastructure.Data;
 namespace Paages.Infrastructure.Migrations
 {
     [DbContext(typeof(PaagesDbContext))]
-    partial class PaagesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260806093437_AddUserAndAuth")]
+    partial class AddUserAndAuth
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
@@ -96,7 +99,7 @@ namespace Paages.Infrastructure.Migrations
                     b.Property<Guid>("FamilyId")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("RevokedAt")
+                    b.Property<DateTime>("RevokedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TokenHash")
