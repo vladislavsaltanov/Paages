@@ -64,7 +64,7 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<AuthExceptionHandler>();
-
+builder.Services.AddScoped<UserAccountService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddOpenApi();
 

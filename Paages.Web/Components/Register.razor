@@ -1,0 +1,87 @@
+@page "/register"
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.IdentityModel.JsonWebTokens
+@using Paages.Domain.Exceptions
+@layout EmptyLayout
+@attribute [AllowAnonymous]
+@inject UserAccountService Accounts
+@inject NavigationManager Navigation
+
+<PageTitle>Регистрация</PageTitle>
+
+<div class="auth-shell">
+    <div class="auth-logo">Paages</div>
+
+    <div class="auth-tabs">
+        <a class="auth-tab" href="/login">вход</a>
+        <span class="auth-tab auth-tab-active">регистрация</span>
+    </div>
+
+    <EditForm Model="_model!" OnValidSubmit="HandleRegister" FormName="register" class="auth-card">
+        <DataAnnotationsValidator />
+
+        @if (_error is not null)
+        {
+            <p class="auth-error">@_error</p>
+        }
+
+        <div class="auth-field">
+            <label>введите свою почту</label>
+            <InputText @bind-Value="_model!.Email" placeholder="you@example.com" />
+        </div>
+
+        <div class="auth-field">
+            <label>введите пароль</label>
+            <InputText type="password" @bind-Value="_model!.Password" placeholder="••••••••" />
+        </div>
+
+        <button type="submit" class="auth-submit">зарегистрироваться</button>
+    </EditForm>
+</div>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginModel? _model { get; set; }
+    protected override void OnInitialized() => _model ??= new LoginModel();
+
+    private string? _error;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            var user = await Accounts.RegisterUserAsync(_model.Email, _model.Password);
+            await SignInAsync(user);
+            Navigation.NavigateTo("/notes", forceLoad: true);
+        }
+        catch (EmailAlreadyRegisteredException)
+        {
+            _error = "Такой email уже зарегистрирован";
+        }
+    }
+
+    private async Task SignInAsync(Paages.Domain.Entities.User user)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new(ClaimTypes.Email, user.Email),
+            new(ClaimTypes.Name, user.Email)
+        };
+        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+    }
+
+    public class LoginModel
+    {
+        [Required, EmailAddress] public string Email { get; set; } = "";
+        [Required] public string Password { get; set; } = "";
+    }
+}

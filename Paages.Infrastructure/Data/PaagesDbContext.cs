@@ -42,5 +42,23 @@ public class PaagesDbContext : DbContext
             .WithMany()
             .HasForeignKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Note>()
+            .HasOne(n => n.User)
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Note>()
+            .HasIndex(n => n.UserId);
+
+        modelBuilder.Entity<Folder>()
+            .HasOne(f => f.User)
+            .WithMany()
+            .HasForeignKey(f => f.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Folder>()
+            .HasIndex(f => f.UserId);
     }
 }

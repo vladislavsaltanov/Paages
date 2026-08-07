@@ -14,6 +14,9 @@
         </div>
 
         <div class="tb-actions">
+            <form method="post" action="/account/logout" class="tb-logout-form">
+                <button type="submit" class="tb-icon tb-logout-btn">выйти</button>
+            </form>
             <button class="tb-view-btn">просмотр</button>
             <span class="tb-saved">@(AppState.LastSavedAt?.ToString("сохранено в HH:mm") ?? "не сохранено")</span>
             <span class="tb-icon">

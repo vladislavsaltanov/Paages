@@ -4,7 +4,7 @@ using Paages.Infrastructure.Data;
 using Paages.Domain.Interfaces;
 namespace Paages.Infrastructure.Services;
 
-public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsState)
+public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsState, ICurrentUser currentUser)
 {
     #region Get/Load
     public async Task<List<Folder>> GetFoldersAsync()
@@ -14,12 +14,14 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
     public async Task<List<Note>> GetNotesAsync()
     {
-        return await db.Notes.ToListAsync();
+        var userId = await currentUser.GetIdAsync();
+        return await db.Notes.Where(n => n.UserId == userId).ToListAsync();
     }
 
     public async Task<Note?> GetNoteAsync(Guid id)
     {
-        return await db.Notes.FindAsync(id);
+        var userId = await currentUser.GetIdAsync();
+        return await db.Notes.FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId);
     }
     public async Task<List<Folder>> GetFolderTreeAsync()
     {
@@ -50,8 +52,10 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     }
     private async Task<List<ITreeNode>> LoadSiblingsAsync(Guid? parentId)
     {
-        var folders = await db.Folders.Where(f => f.ParentId == parentId).ToListAsync();
-        var notes = await db.Notes.Where(n => n.FolderId == parentId).ToListAsync();
+        var userId = await currentUser.GetIdAsync();
+        
+        var folders = await db.Folders.Where(f => f.ParentId == parentId && f.UserId == userId).ToListAsync();
+        var notes = await db.Notes.Where(n => n.FolderId == parentId && n.UserId == userId).ToListAsync();
 
         return folders.Cast<ITreeNode>()
             .Concat(notes.Cast<ITreeNode>())
@@ -73,6 +77,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     #region Create/Duplicate
     public async Task<Folder> CreateFolderAsync(Guid? parentId)
     {
+        var userId = await currentUser.GetIdAsync();
         var siblings = await LoadSiblingsAsync(parentId);
 
         foreach (var sibling in siblings)
@@ -82,6 +87,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         {
             Id = Guid.NewGuid(),
             Name = "Новая папка",
+            UserId = userId,
             ParentId = parentId,
             SortOrder = 0
         };
@@ -93,7 +99,8 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     }
     public async Task<Note> CreateNoteAsync(Guid? folderId)
     {
-         var siblings = await LoadSiblingsAsync(folderId);
+        var userId = await currentUser.GetIdAsync();
+        var siblings = await LoadSiblingsAsync(folderId);
 
         foreach (var sibling in siblings)
             sibling.SortOrder++;
@@ -102,6 +109,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         {
             Id = Guid.NewGuid(),
             Title = "Без названия",
+            UserId = userId,
             ContentHtml = "<p></p>",
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow,
@@ -116,7 +124,8 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     }
     public async Task<Note> DuplicateNoteAsync(Guid id)
     {
-        var source = await db.Notes.FindAsync(id);
+        var userId = await currentUser.GetIdAsync();
+        var source = await FindNoteAsync(id);
         if (source is null) throw new InvalidOperationException("Note not found.");
 
         var siblings = await LoadSiblingsAsync(source.FolderId);
@@ -126,6 +135,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         var copy = new Note
         {
             Id = Guid.NewGuid(),
+            UserId = userId,
             Title = $"{source.Title} (копия)".Truncate(100)!,
             ContentHtml = source.ContentHtml,
             CreatedAt = DateTime.UtcNow,
@@ -143,7 +153,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     #region Delete
     public async Task DeleteNoteAsync(Guid id)
     {
-        var note = await db.Notes.FindAsync(id);
+        var note = await FindNoteAsync(id);
         if (note is null) return;
 
         await DeleteNodeAsync(note, note.FolderId, db.Notes);
@@ -152,7 +162,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
     public async Task DeleteFolderAsync(Guid id)
     {
-        var folder = await db.Folders.FindAsync(id);
+        var folder = await FindFolderAsync(id);
         if (folder is null) return;
 
         await DeleteNodeAsync(folder, folder.ParentId, db.Folders);
@@ -179,10 +189,17 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     #region Move/Pin
     public async Task MoveAsync(Guid nodeId, bool isFolder, Guid? newParentId, Guid? insertBeforeId)
     {
+        if (newParentId.HasValue)
+        {
+            var target = await FindFolderAsync(newParentId.Value);
+            if (target is null)
+                throw new InvalidOperationException("Target folder not found.");
+        }
+
         // check if folder is a descendent of new parent folder via loop
         if (isFolder && newParentId.HasValue)
         {
-            var parent = await db.Folders.FindAsync(newParentId.Value);
+            var parent = await FindFolderAsync(newParentId.Value);
             while (parent != null)
             {
                 if (parent.Id == nodeId)
@@ -191,7 +208,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
                 if (parent.ParentId == null)
                     break;
 
-                parent = await db.Folders.FindAsync(parent.ParentId);
+                parent = await FindFolderAsync(parent.ParentId.Value);
             }
         }
 
@@ -200,7 +217,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
         if (isFolder)
         {
-            var folder = await db.Folders.FindAsync(nodeId);
+            var folder = await FindFolderAsync(nodeId);
             if (folder is null) return;
             oldParentId = folder.ParentId;
             folder.ParentId = newParentId;
@@ -208,7 +225,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         }
         else
         {
-            var note = await db.Notes.FindAsync(nodeId);
+            var note = await FindNoteAsync(nodeId);
             if (note is null) return;
             oldParentId = note.FolderId;
             note.FolderId = newParentId;
@@ -246,14 +263,14 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     {
         if (isFolder)
         {
-            var folder = await db.Folders.FindAsync(nodeId);
+            var folder = await FindFolderAsync(nodeId);
             if (folder is null) return;
 
             folder.IsPinned = !folder.IsPinned;
         }
         else
         {
-            var note = await db.Notes.FindAsync(nodeId);
+            var note = await FindNoteAsync(nodeId);
             if (note is null) return;
 
             note.IsPinned = !note.IsPinned;
@@ -266,7 +283,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     #region Rename
     public async Task<string> RenameNoteAsync(Guid id, string title)
     {
-        var note = await db.Notes.FindAsync(id);
+        var note = await FindNoteAsync(id);
         if (note is null) return title;
 
         note.Title = string.IsNullOrWhiteSpace(title) ? "Без названия" : title.Trim().Truncate(100)!;
@@ -278,7 +295,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     }
     public async Task<string> RenameFolderAsync(Guid id, string name)
     {
-        var folder = await db.Folders.FindAsync(id);
+        var folder = await FindFolderAsync(id);
         if (folder is null) return name;
 
         folder.Name = string.IsNullOrWhiteSpace(name) ? "Новая папка" : name.Trim().Truncate(100)!;
@@ -287,7 +304,19 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         return folder.Name;
     }
     #endregion
-
+    #region Find
+    private async Task<Note?> FindNoteAsync(Guid id)
+    {
+        var userId = await currentUser.GetIdAsync();
+        return await db.Notes.FirstOrDefaultAsync(n => n.Id == id && n.UserId == userId);
+    }
+    private async Task<Folder?> FindFolderAsync(Guid id)
+    {
+        var userId = await currentUser.GetIdAsync();
+        return await db.Folders.FirstOrDefaultAsync(f => f.Id == id && f.UserId == userId);
+    }
+    #endregion
+    
     #region Miscellaneous
     public async Task SeedTestDataAsync()
     {

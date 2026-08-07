@@ -71,3 +71,82 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+.auth-shell {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    background-color: var(--bg-primary);
+}
+
+.auth-logo {
+    font-family: var(--font-mono);
+    font-size: 56px;
+    color: var(--text-primary);
+    margin-bottom: -10px;
+}
+
+.auth-tabs {
+    display: flex;
+    gap: 24px;
+}
+
+.auth-tab {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.auth-tab-active {
+    color: var(--accent);
+}
+
+.auth-card {
+    width: 360px;
+    padding: 24px;
+    border: 1px solid rgba(255,255,255,0.23);
+    border-radius: 12px;
+    background-color: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.auth-field label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.auth-field input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid rgba(255,255,255,0.23);
+    border-radius: 12px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.auth-error {
+    color: #ff6b6b;
+    font-size: 14px;
+    margin: 0;
+}
+
+.auth-submit {
+    padding: 14px;
+    border-radius: 12px;
+    background-color: var(--accent);
+    color: var(--bg-primary);
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+}

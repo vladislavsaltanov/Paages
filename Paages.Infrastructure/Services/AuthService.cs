@@ -11,24 +11,11 @@ using Paages.Infrastructure.Data;
 
 namespace Paages.Infrastructure.Services;
 
-public class AuthService(PaagesDbContext db, IOptions<JwtOptions> jwtOptions)
+public class AuthService(PaagesDbContext db, IOptions<JwtOptions> jwtOptions, UserAccountService accounts)
 {
     public async Task<AuthResult> RegisterAsync(string email, string password)
     {
-        var normalizedEmail = Normalize(email);
-
-        if (await db.Users.AnyAsync(u => u.Email == normalizedEmail))
-            throw new EmailAlreadyRegisteredException();
-
-        var user = new User
-        {
-            Id = Guid.NewGuid(),
-            Email = normalizedEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
-            CreatedAt = DateTime.UtcNow
-        };
-        db.Users.Add(user);
-
+        var user = await accounts.RegisterUserAsync(email, password);
         var result = IssueTokenPair(user, Guid.NewGuid(), DateTime.UtcNow);
         await db.SaveChangesAsync();
         return result;
@@ -36,12 +23,7 @@ public class AuthService(PaagesDbContext db, IOptions<JwtOptions> jwtOptions)
 
     public async Task<AuthResult> LoginAsync(string email, string password)
     {
-        var normalizedEmail = Normalize(email);
-        var user = await db.Users.SingleOrDefaultAsync(u => u.Email == normalizedEmail);
-
-        if (user is null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-            throw new InvalidCredentialsException();
-
+        var user = await accounts.ValidateCredentialsAsync(email, password);
         var result = IssueTokenPair(user, Guid.NewGuid(), DateTime.UtcNow);
         await db.SaveChangesAsync();
         return result;
@@ -135,5 +117,4 @@ public class AuthService(PaagesDbContext db, IOptions<JwtOptions> jwtOptions)
     private static string HashToken(string token) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
 
-    private static string Normalize(string email) => email.Trim().ToLowerInvariant();
 }
