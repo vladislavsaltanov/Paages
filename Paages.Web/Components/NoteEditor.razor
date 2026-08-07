@@ -46,21 +46,22 @@
         AppState.NoteRenamed += OnNoteRenamedExternally;
     }
 
-    private async void OnNoteRenamedExternally(Guid noteId, string newTitle)
+    private void OnNoteRenamedExternally(Guid noteId, string newTitle)
     {
         if (Note is null || noteId != Note.Id) return;
-
         Note.Title = newTitle;
+        _ = UpdateTitleInEditorAsync(newTitle);
+    }
 
-        if (_module is not null)
+    private async Task UpdateTitleInEditorAsync(string newTitle)
+    {
+        if (_module is null) return;
+        try
         {
-            try
-            {
-                await _module.InvokeVoidAsync("setTitleText", TitleElementId, newTitle);
-            }
-            catch (JSDisconnectedException) { }
-            catch (JSException) { }
+            await _module.InvokeVoidAsync("setTitleText", TitleElementId, newTitle);
         }
+        catch (JSDisconnectedException) { }
+        catch (JSException) { }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

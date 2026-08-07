@@ -8,6 +8,7 @@
 @using Paages.Domain.Exceptions
 @layout EmptyLayout
 @attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
 @inject UserAccountService Accounts
 @inject NavigationManager Navigation
 
@@ -57,7 +58,7 @@
     {
         try
         {
-            var user = await Accounts.RegisterUserAsync(_model.Email, _model.Password);
+            var user = await Accounts.RegisterUserAsync(_model!.Email, _model.Password);
             await SignInAsync(user);
             Navigation.NavigateTo("/notes", forceLoad: true);
         }

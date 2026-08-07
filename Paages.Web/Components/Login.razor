@@ -8,6 +8,7 @@
 @using Paages.Domain.Exceptions
 @layout EmptyLayout
 @attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
 @inject UserAccountService Accounts
 @inject NavigationManager Navigation
 
