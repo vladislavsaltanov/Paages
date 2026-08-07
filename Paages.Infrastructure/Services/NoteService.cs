@@ -45,6 +45,14 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
         return allFolders.Where(f => f.ParentId == null).ToList();
     }
+    public async Task<List<ITreeNode>> GetPinnedItemsAsync()
+    {
+        var userId = await currentUser.GetIdAsync();
+        var pinnedFolders = await db.Folders.Include(f => f.Notes).Where(f => f.UserId == userId && f.IsPinned).ToListAsync();
+        var pinnedNotes = await db.Notes.Where(n => n.UserId == userId && n.IsPinned).ToListAsync();
+
+        return pinnedFolders.Cast<ITreeNode>().Concat(pinnedNotes.Cast<ITreeNode>()).ToList();
+    }
 
     public async Task<List<Note>> GetNotesWithoutFolderAsync()
     {
