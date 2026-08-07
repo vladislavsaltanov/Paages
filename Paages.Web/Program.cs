@@ -50,7 +50,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// статика — ДО статус-кодов и авторизации
 app.MapStaticAssets().AllowAnonymous();
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
