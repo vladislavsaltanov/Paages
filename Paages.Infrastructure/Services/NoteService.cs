@@ -19,6 +19,12 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         return await db.Notes.Where(n => n.UserId == userId).ToListAsync();
     }
 
+    public async Task<Folder?> GetFolderAsync(Guid id)
+    {
+        var userId = await currentUser.GetIdAsync();
+        return await db.Folders.FirstOrDefaultAsync(f => f.Id == id && f.UserId == userId);
+    }
+
     public async Task<Note?> GetNoteAsync(Guid id)
     {
         var userId = await currentUser.GetIdAsync();

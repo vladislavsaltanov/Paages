@@ -12,11 +12,11 @@
     align-items: center;
     justify-content: space-between;
     height: 45px;
-    padding: 0 25px;
+    padding: 0 10px;
 }
 
-.tb-breadcrumbs { font-size: 14px; font-weight: 300; color: rgba(255, 255, 255, 0.6); white-space: nowrap; }
-.tb-breadcrumbs .current { font-weight: 500; color: #fff; }
+.tb-breadcrumbs { font-size: 14px; font-weight: 300; color: rgba(255, 255, 255, 0.6); white-space: nowrap; padding-left: 10px; }
+.tb-breadcrumbs .current { font-weight: 500; color: var(--accent); padding-left: 10px; }
 
 .tb-actions { display: flex; align-items: center; gap: 16px; }
 .tb-saved { font-size: 14px; font-weight: 300; color: rgba(255, 255, 255, 0.6); white-space: nowrap; margin-left: 24px; }
