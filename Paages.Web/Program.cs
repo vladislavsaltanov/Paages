@@ -42,6 +42,7 @@ builder.Services.AddScoped<ContextMenuState>();
 builder.Services.AddScoped<ConfirmDialogState>();
 
 var app = builder.Build();
+app.UseHttpsRedirection();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -65,7 +66,8 @@ app.MapRazorComponents<App>()
 app.MapPost("/account/logout", async (HttpContext http) =>
 {
     await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    http.Response.Cookies.Delete("paages_tabs", new CookieOptions { Path = "/" });
     return Results.Redirect("/login");
-}).DisableAntiforgery().AllowAnonymous();
+}).AllowAnonymous();
 
 app.Run();

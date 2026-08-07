@@ -9,7 +9,8 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     #region Get/Load
     public async Task<List<Folder>> GetFoldersAsync()
     {
-        return await db.Folders.ToListAsync();
+        var userId = await currentUser.GetIdAsync();
+        return await db.Folders.Where(f => f.UserId == userId).ToListAsync();
     }
 
     public async Task<List<Note>> GetNotesAsync()
@@ -25,8 +26,10 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     }
     public async Task<List<Folder>> GetFolderTreeAsync()
     {
+        var userId = await currentUser.GetIdAsync();
         var allFolders = await db.Folders
                 .Include(f => f.Notes)
+                .Where(f => f.UserId == userId)
                 .ToListAsync();
 
         foreach (var folder in allFolders)
@@ -39,16 +42,18 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
     public async Task<List<Note>> GetNotesWithoutFolderAsync()
     {
+        var userId = await currentUser.GetIdAsync();
         return await db.Notes
-            .Where(n => n.FolderId == null)
+            .Where(n => n.FolderId == null && n.UserId == userId)
             .OrderBy(n => n.SortOrder)
             .ToListAsync();
     }
     public async Task<List<Note>> GetNotesByIdsAsync(IEnumerable<Guid> ids)
     {
         var idList = ids.ToList();
+        var userId = await currentUser.GetIdAsync();
         if (idList.Count == 0) return new List<Note>();
-        return await db.Notes.Where(n => idList.Contains(n.Id)).ToListAsync();
+        return await db.Notes.Where(n => idList.Contains(n.Id) && n.UserId == userId).ToListAsync();
     }
     private async Task<List<ITreeNode>> LoadSiblingsAsync(Guid? parentId)
     {
@@ -66,7 +71,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     #region Save
     public async Task SaveNoteContentAsync(Guid id, string html)
     {
-        var note = await db.Notes.FindAsync(id);
+        var note = await FindNoteAsync(id);
         if (note is null) return;
 
         note.ContentHtml = html;
@@ -316,28 +321,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         return await db.Folders.FirstOrDefaultAsync(f => f.Id == id && f.UserId == userId);
     }
     #endregion
-    
-    #region Miscellaneous
-    public async Task SeedTestDataAsync()
-    {
-        // if (await db.Notes.AnyAsync()) return;
-
-        //var home = new Folder { Name = "Дом", Id = Guid.NewGuid() };
-        //var archive = new Folder { Name = "Архив", Id = Guid.NewGuid(), ParentId = home.Id };
-
-        //db.Folders.AddRange(home, archive);
-
-        db.Notes.AddRange(
-            new Note { Id = Guid.NewGuid(), Title = "Заметка без папки 5", ContentHtml = "<p>Текст 1</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
-            new Note { Id = Guid.NewGuid(), Title = "Заметка без папки 6", ContentHtml = "<p>Текст 2</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
-            // new Note { Id = Guid.NewGuid(), Title = "Заметка в Доме 1", ContentHtml = "<p>Текст 3</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = home.Id },
-            // new Note { Id = Guid.NewGuid(), Title = "Заметка в Доме 2", ContentHtml = "<p>Текст 4</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = home.Id },
-            // new Note { Id = Guid.NewGuid(), Title = "Заметка в Архиве 1", ContentHtml = "<p>Текст 5</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = archive.Id },
-            // new Note { Id = Guid.NewGuid(), Title = "Заметка в Архиве 2", ContentHtml = "<p>Текст 6</p>", CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, FolderId = archive.Id }
-        );
-
-        await db.SaveChangesAsync();
-    }
+    #region Misc
     private void Reindex(IEnumerable<ITreeNode> siblings)
     {
         var list = siblings.ToList();

@@ -37,6 +37,9 @@ public class AuthService(PaagesDbContext db, IOptions<JwtOptions> jwtOptions, Us
         if (found is null)
             throw new InvalidRefreshTokenException();
 
+        if (found.ExpiresAt < DateTime.UtcNow)
+            throw new InvalidRefreshTokenException();
+
         var revoked = await db.RefreshTokens
             .Where(t => t.Id == found.Id && t.RevokedAt == null)
             .ExecuteUpdateAsync(s => s.SetProperty(t => t.RevokedAt, DateTime.UtcNow));
