@@ -3,6 +3,8 @@ namespace Paages.Domain.Entities;
 public class Note : ITreeNode
 {
     public Guid Id { get; set; }
+    public User? User { get; set; }
+    public Guid UserId { get; set; }
     public Guid? FolderId { get; set; }
     public Folder? Folder { get; set; }
     public string Title { get; set; } = string.Empty;
