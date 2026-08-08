@@ -159,6 +159,8 @@
         {
             _folderTree = await NoteService.GetFolderTreeAsync();
             _notesWithoutFolder = await NoteService.GetNotesWithoutFolderAsync();
+            _pinnedItems = await NoteService.GetPinnedItemsAsync();
+
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
@@ -174,6 +176,7 @@
     {
         _folderTree = await NoteService.GetFolderTreeAsync();
         _notesWithoutFolder = await NoteService.GetNotesWithoutFolderAsync();
+        _pinnedItems = await NoteService.GetPinnedItemsAsync();
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -182,20 +185,6 @@
             _dragDropModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/dragDrop.js");
             await _dragDropModule.InvokeVoidAsync("initTreeDragOver", "sidebar-tree-root");
         }
-
-        var pinnedFolders = await NoteService.GetPinnedItemsAsync();
-        if (!pinnedFolders.SequenceEqual(_pinnedItems))
-        {
-            _pinnedItems = pinnedFolders;
-            StateHasChanged();
-        }
-    }
-    private async Task OpenNote(Guid noteId)
-    {
-        Navigation.NavigateTo($"/notes/{noteId}");
-
-        if (await NoteService.HasFolder(noteId))
-            UIController.InvokeFolderExpansion(await NoteService.GetAllDescendantFolderIdsAsync(noteId));
     }
 
     private async Task CreateNote()
