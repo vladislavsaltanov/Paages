@@ -1,4 +1,5 @@
 @inject AppState AppState
+@using Paages.Web.Interfaces
 @using Paages.Domain.Interfaces
 @inject ITabsState TabsState
 @inject NoteService NoteService
@@ -6,7 +7,7 @@
 @implements IAsyncDisposable
 @inject IJSRuntime JS
 @inject IUIController UIController
-
+@inject INavigationController NavigationController
 
 <header class="topbar">
 
@@ -50,7 +51,7 @@
             @foreach (var id in TabsState.OpenTabsIds)
             {
                 <div class="tb-tab @(id == TabsState.ActiveTabId ? "tb-tab-active" : "tb-tab-inactive")"
-                    @onclick="() => _ = OpenTab(id)">
+                    @onclick="() => NavigationController.OpenNote(id)">
                     <span class="tb-tab-title">@(_titles.GetValueOrDefault(id, "..."))</span>
                     <span @onclick="() => CloseTab(id)" @onclick:stopPropagation="true">@CloseIcon</span>
                 </div>
@@ -163,13 +164,6 @@
             await _scrollModule.InvokeVoidAsync("refreshScrollState", "tb-tabs-scroll");
     }
 
-    private async Task OpenTab(Guid noteId)
-    {
-        Navigation.NavigateTo($"/notes/{noteId}");
-
-        if (await NoteService.HasFolder(noteId))
-            UIController.InvokeFolderExpansion(await NoteService.GetAllDescendantFolderIdsAsync(noteId));
-    }
     private void CloseTab(Guid id)
     {
         var next = TabsState.Close(id);
