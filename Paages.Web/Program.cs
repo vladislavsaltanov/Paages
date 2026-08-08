@@ -2,6 +2,7 @@ using Paages.Web.Components;
 using Paages.Infrastructure.Data;
 using Paages.Infrastructure.Services;
 using Paages.Web.Services;
+using Paages.Web.Interfaces;
 using Paages.Domain.Interfaces;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
@@ -21,6 +22,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/login";
         options.ExpireTimeSpan = TimeSpan.FromDays(14);
         options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     });
 
 builder.Services.AddAuthorization(options =>
@@ -33,6 +37,8 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<IUIController, UIController>();
+builder.Services.AddScoped<INavigationController, NavigationController>();
 builder.Services.AddScoped<UserAccountService>();
 builder.Services.AddScoped<NoteService>();
 builder.Services.AddScoped<DragDropState>();
@@ -50,7 +56,6 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// статика — ДО статус-кодов и авторизации
 app.MapStaticAssets().AllowAnonymous();
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);

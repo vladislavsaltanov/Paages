@@ -1,20 +1,23 @@
 @inject AppState AppState
+@using Paages.Web.Interfaces
 @using Paages.Domain.Interfaces
 @inject ITabsState TabsState
 @inject NoteService NoteService
 @inject NavigationManager Navigation
 @implements IAsyncDisposable
 @inject IJSRuntime JS
+@inject IUIController UIController
+@inject INavigationController NavigationController
 
 <header class="topbar">
 
     <div class="tb-row">
 
         <span class="tb-breadcrumbs">
-        @for (int i = 0; i < PathToNoteList.Count; i++)
+        @for (int i = 0; i < _path.Count; i++)
         {
-            var part = PathToNoteList[i];
-            if (i == PathToNoteList.Count - 1)
+            var part = _path[i];
+            if (i == _path.Count - 1)
             {
                 <span class="tb-breadcrumbs current">@part</span>
             }
@@ -48,7 +51,7 @@
             @foreach (var id in TabsState.OpenTabsIds)
             {
                 <div class="tb-tab @(id == TabsState.ActiveTabId ? "tb-tab-active" : "tb-tab-inactive")"
-                    @onclick="() => OpenTab(id)">
+                    @onclick="() => NavigationController.OpenNote(id)">
                     <span class="tb-tab-title">@(_titles.GetValueOrDefault(id, "..."))</span>
                     <span @onclick="() => CloseTab(id)" @onclick:stopPropagation="true">@CloseIcon</span>
                 </div>
@@ -69,7 +72,7 @@
         """);
 
 
-    private List<string> PathToNoteList => PathToNote(TabsState.ActiveTabId).Result.ToArray().Reverse().ToList();
+    private List<string> _path = new();
 
     private async Task<List<string>> PathToNote(Guid? guid)
     {
@@ -104,6 +107,13 @@
             _scrollInitialized = true;
             await _scrollModule.InvokeVoidAsync("initTabsScroll", "tb-tabs-scroll", "tb-tabs-row");
         }
+
+        var newPath = (await PathToNote(TabsState.ActiveTabId)).AsEnumerable().Reverse().ToList();
+        if (!newPath.SequenceEqual(_path))
+        {
+            _path = newPath;
+            StateHasChanged();
+        }
     }
 
     private async Task Scroll(int delta)
@@ -129,7 +139,6 @@
     {
         try
         {
-            PathToNoteList.Clear();
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
@@ -154,8 +163,6 @@
         if (_scrollModule is not null)
             await _scrollModule.InvokeVoidAsync("refreshScrollState", "tb-tabs-scroll");
     }
-
-    private void OpenTab(Guid id) => Navigation.NavigateTo($"/notes/{id}");
 
     private void CloseTab(Guid id)
     {

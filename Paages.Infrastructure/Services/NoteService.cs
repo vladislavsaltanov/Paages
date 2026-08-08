@@ -45,6 +45,32 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
         return allFolders.Where(f => f.ParentId == null).ToList();
     }
+    public async Task<HashSet<Guid>> GetAllDescendantFolderIdsAsync(Guid noteId)
+    {
+        var descendantIds = new HashSet<Guid>();
+
+        var note = await GetNoteAsync(noteId);
+
+        if (note is null || note.Folder is null)
+            return descendantIds;
+
+        var folder = note.Folder;
+        while (folder is not null)
+        {
+            descendantIds.Add(folder.Id);
+            folder = folder.Parent;
+        }
+        
+        return descendantIds;
+    }
+    public async Task<List<ITreeNode>> GetPinnedItemsAsync()
+    {
+        var userId = await currentUser.GetIdAsync();
+        var pinnedFolders = await db.Folders.Include(f => f.Notes).Where(f => f.UserId == userId && f.IsPinned).ToListAsync();
+        var pinnedNotes = await db.Notes.Where(n => n.UserId == userId && n.IsPinned).ToListAsync();
+
+        return pinnedFolders.Cast<ITreeNode>().Concat(pinnedNotes.Cast<ITreeNode>()).ToList();
+    }
 
     public async Task<List<Note>> GetNotesWithoutFolderAsync()
     {
@@ -72,6 +98,13 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
             .Concat(notes.Cast<ITreeNode>())
             .OrderBy(n => n.SortOrder)
             .ToList();
+    }
+    public async Task<bool> HasFolder(Guid? guid)
+    {
+        if (guid is null) return false;
+
+        var note = await FindNoteAsync(guid.Value);
+        return note?.FolderId.HasValue ?? false;
     }
     #endregion
     #region Save

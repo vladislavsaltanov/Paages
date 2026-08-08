@@ -1,4 +1,5 @@
 @using Paages.Web.Services
+@using Paages.Web.Interfaces
 @using Paages.Domain.Interfaces
 @implements IDisposable
 @inject NavigationManager Navigation
@@ -8,12 +9,14 @@
 @inject ITabsState TabsState
 @inject ConfirmDialogState ConfirmDialogState
 @inject IJSRuntime JS
+@inject IUIController UIController
+@inject INavigationController NavigationController
 
 <div class="sb-tree-row @(Note.Id == ActiveNoteId ? "sb-tree-active" : "") @(DragDropState.DraggedNodeId == Note.Id || ForceDisabled ? "sb-tree-dragging" : "")"
      draggable="true"
      @ondragstart="() => DragDropState.StartDrag(Note.Id, false)"
      @ondragend="DragDropState.EndDrag"
-     @onclick="() => OpenNote(Note.Id)"
+     @onclick="() => NavigationController.OpenNote(Note.Id)"
      id="@($"tree-row-{Note!.Id}")"
      @ondragover:preventDefault="true"
      @ondrop="HandleDrop"
@@ -97,10 +100,6 @@
         DragDropState.Changed += StateHasChanged;
         AppState.NoteRenamed += OnNoteRenamed;
     }
-    void OpenNote(Guid noteId)
-    {
-        Navigation.NavigateTo($"/notes/{noteId}");
-    }
     public void Dispose()
     {
         DragDropState.Changed -= StateHasChanged;
@@ -127,7 +126,7 @@
 
     private List<ContextMenuEntry> BuildMenu() => new()
     {
-        new ContextMenuItem("Открыть", () => { OpenNote(Note.Id); return Task.CompletedTask; }),
+        new ContextMenuItem("Открыть", () => { NavigationController.OpenNote(Note.Id); return Task.CompletedTask; }),
         new ContextMenuItem("Открыть в новой вкладке", () => { TabsState.OpenBackground(Note.Id); return Task.CompletedTask; }),
         new ContextMenuSeparator(),
         new ContextMenuItem(Note.IsPinned ? "Открепить" : "Закрепить", () => NoteService.TogglePinAsync(Note.Id, false)),
