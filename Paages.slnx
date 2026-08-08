@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="Paages.Domain/Paages.Domain.csproj" />
   <Project Path="Paages.Infrastructure/Paages.Infrastructure.csproj" />
+  <Project Path="Paages.Tests/Paages.Tests.csproj" />
   <Project Path="Paages.Web/Paages.Web.csproj" />
   <Project Path="Paages.Api/Paages.Api.csproj" />
 </Solution>

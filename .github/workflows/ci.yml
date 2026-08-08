@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore Paages.slnx
+
+      - name: Build
+        run: dotnet build Paages.slnx --no-restore -c Release
+
+      - name: Check for pending EF model changes
+        run: |
+          dotnet tool install --global dotnet-ef
+          dotnet ef migrations has-pending-model-changes --project Paages.Infrastructure --startup-project Paages.Web
+
+      - name: Test
+        run: dotnet test Paages.slnx --no-build -c Release
