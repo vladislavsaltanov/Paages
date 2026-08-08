@@ -8,12 +8,13 @@
 @inject ITabsState TabsState
 @inject ConfirmDialogState ConfirmDialogState
 @inject IJSRuntime JS
+@inject IUIController UIController
 
 <div class="sb-tree-row @(Note.Id == ActiveNoteId ? "sb-tree-active" : "") @(DragDropState.DraggedNodeId == Note.Id || ForceDisabled ? "sb-tree-dragging" : "")"
      draggable="true"
      @ondragstart="() => DragDropState.StartDrag(Note.Id, false)"
      @ondragend="DragDropState.EndDrag"
-     @onclick="() => OpenNote(Note.Id)"
+     @onclick="() => _ = OpenNote(Note.Id)"
      id="@($"tree-row-{Note!.Id}")"
      @ondragover:preventDefault="true"
      @ondrop="HandleDrop"
@@ -97,9 +98,12 @@
         DragDropState.Changed += StateHasChanged;
         AppState.NoteRenamed += OnNoteRenamed;
     }
-    void OpenNote(Guid noteId)
+    private async Task OpenNote(Guid noteId)
     {
         Navigation.NavigateTo($"/notes/{noteId}");
+
+        if (await NoteService.HasFolder(noteId))
+            UIController.InvokeFolderExpansion(await NoteService.GetAllDescendantFolderIdsAsync(noteId));
     }
     public void Dispose()
     {
@@ -127,7 +131,7 @@
 
     private List<ContextMenuEntry> BuildMenu() => new()
     {
-        new ContextMenuItem("Открыть", () => { OpenNote(Note.Id); return Task.CompletedTask; }),
+        new ContextMenuItem("Открыть", () => { _ = OpenNote(Note.Id); return Task.CompletedTask; }),
         new ContextMenuItem("Открыть в новой вкладке", () => { TabsState.OpenBackground(Note.Id); return Task.CompletedTask; }),
         new ContextMenuSeparator(),
         new ContextMenuItem(Note.IsPinned ? "Открепить" : "Закрепить", () => NoteService.TogglePinAsync(Note.Id, false)),

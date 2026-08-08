@@ -69,7 +69,8 @@
 
 .sb-pinned { flex-shrink: 0; margin: 30px 10px 0; }
 
-.sb-pinned-divider { display: flex; align-items: center; gap: 5px; height: 9px; }
+.sb-pinned-divider { display: flex; align-items: center; gap: 5px; height: 9px; padding-bottom: 15px;}
+.sb-pinned-divider .sb-line:nth-child(1) { max-width: 20px; }
 .sb-pinned-label { font-size: 10px; font-weight: 200; opacity: .6; white-space: nowrap; }
 .sb-line { flex: 1; height: 1px; background-color: rgba(255, 255, 255, 0.6); }
 .sb-plus { opacity: .6; display: flex; }

@@ -36,6 +36,7 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<IUIController, UIController>();
 builder.Services.AddScoped<UserAccountService>();
 builder.Services.AddScoped<NoteService>();
 builder.Services.AddScoped<DragDropState>();

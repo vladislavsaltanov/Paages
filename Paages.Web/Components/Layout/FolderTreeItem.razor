@@ -1,5 +1,6 @@
 @inject NavigationManager Navigation
 @using Paages.Web.Services
+@using Paages.Domain.Interfaces;
 @inject DragDropState DragDropState
 @using Paages.Domain.Entities
 @implements IDisposable
@@ -7,6 +8,7 @@
 @inject AppState AppState
 @inject ConfirmDialogState ConfirmDialogState
 @inject IJSRuntime JS
+@inject IUIController UIController
 
 @if (Folder is not null)
 {
@@ -90,6 +92,7 @@
     protected override void OnInitialized()
     {
         DragDropState.Changed += StateHasChanged;
+        UIController.ExpandFolders += ForceExpand;
     }
 
     private IEnumerable<ITreeNode> Items =>
@@ -101,6 +104,12 @@
     {
         _isExpanded = !_isExpanded;
     }
+
+    private void ForceExpand(HashSet<Guid> ids) 
+    {
+        if (ids.Contains(Folder!.Id)) _isExpanded = true;
+    }
+
     private async Task HandleDrop(DragEventArgs e)
     {
         if (DragDropState.DraggedNodeId is not Guid draggedId) return;
@@ -126,6 +135,7 @@
     public void Dispose()
     {
         DragDropState.Changed -= StateHasChanged;
+        UIController.ExpandFolders -= ForceExpand;
     }
 
     private List<ContextMenuEntry> BuildMenu() => new()

@@ -4,6 +4,8 @@
 @implements IDisposable
 @inject DragDropState DragDropState
 @inject AppState AppState
+@using Paages.Domain.Interfaces
+@inject IUIController UIController
 @inject ContextMenuState ContextMenuState
 
 <aside class="sidebar" id="sidebar-tree-root">
@@ -64,11 +66,9 @@
 
     <div class="sb-pinned">
         <div class="sb-pinned-divider">
+            <span class="sb-line" max-width="10"></span>
             <span class="sb-pinned-label">закрепленные</span>
             <span class="sb-line"></span>
-            <span class="sb-plus">
-                <svg viewBox="0 0 6 6" width="6" height="6"><path fill="#fff" d="M6 3C6 3.0663 5.9737 3.1299 5.9268 3.1768 5.8799 3.2237 5.8163 3.25 5.75 3.25H3.25V5.75C3.25 5.8163 3.2237 5.8799 3.1768 5.9268 3.1299 5.9737 3.0663 6 3 6 2.9337 6 2.8701 5.9737 2.8232 5.9268 2.7763 5.8799 2.75 5.8163 2.75 5.75V3.25H0.25C0.1837 3.25 0.1201 3.2237 0.0732 3.1768 0.0263 3.1299 0 3.0663 0 3 0 2.9337 0.0263 2.8701 0.0732 2.8232 0.1201 2.7763 0.1837 2.75 0.25 2.75H2.75V0.25C2.75 0.1837 2.7763 0.1201 2.8232 0.0732 2.8701 0.0263 2.9337 0 3 0 3.0663 0 3.1299 0.0263 3.1768 0.0732 3.2237 0.1201 3.25 0.1837 3.25 0.25V2.75H5.75C5.8163 2.75 5.8799 2.7763 5.9268 2.8232 5.9737 2.8701 6 2.9337 6 3Z" /></svg>
-            </span>
         </div>
         @for (int i = 0; i < _pinnedItems.Count; i++)
         {
@@ -89,7 +89,7 @@
     <div class="sb-tree-divider">
             <div class="sb-line"></div>
             <span class="sb-plus">
-                <svg viewBox="0 0 6 6" width="6" height="6"><path fill="#fff" d="M6 3C6 3.0663 5.9737 3.1299 5.9268 3.1768 5.8799 3.2237 5.8163 3.25 5.75 3.25H3.25V5.75C3.25 5.8163 3.2237 5.8799 3.1768 5.9268 3.1299 5.9737 3.0663 6 3 6 2.9337 6 2.8701 5.9737 2.8232 5.9268 2.7763 5.8799 2.75 5.8163 2.75 5.75V3.25H0.25C0.1837 3.25 0.1201 3.2237 0.0732 3.1768 0.0263 3.1299 0 3.0663 0 3 0 2.9337 0.0263 2.8701 0.0732 2.8232 0.1201 2.7763 0.1837 2.75 0.25 2.75H2.75V0.25C2.75 0.1837 2.7763 0.1201 2.8232 0.0732 2.8701 0.0263 2.9337 0 3 0 3.0663 0 3.1299 0.0263 3.1768 0.0732 3.2237 0.1201 3.25 0.1837 3.25 0.25V2.75H5.75C5.8163 2.75 5.8799 2.7763 5.9268 2.8232 5.9737 2.8701 6 2.9337 6 3Z" /></svg>
+                <svg viewBox="0 0 6 6" width="12" height="12" @onclick="OpenRootContextMenu"><path fill="#fff" d="M6 3C6 3.0663 5.9737 3.1299 5.9268 3.1768 5.8799 3.2237 5.8163 3.25 5.75 3.25H3.25V5.75C3.25 5.8163 3.2237 5.8799 3.1768 5.9268 3.1299 5.9737 3.0663 6 3 6 2.9337 6 2.8701 5.9737 2.8232 5.9268 2.7763 5.8799 2.75 5.8163 2.75 5.75V3.25H0.25C0.1837 3.25 0.1201 3.2237 0.0732 3.1768 0.0263 3.1299 0 3.0663 0 3 0 2.9337 0.0263 2.8701 0.0732 2.8232 0.1201 2.7763 0.1837 2.75 0.25 2.75H2.75V0.25C2.75 0.1837 2.7763 0.1201 2.8232 0.0732 2.8701 0.0263 2.9337 0 3 0 3.0663 0 3.1299 0.0263 3.1768 0.0732 3.2237 0.1201 3.25 0.1837 3.25 0.25V2.75H5.75C5.8163 2.75 5.8799 2.7763 5.9268 2.8232 5.9737 2.8701 6 2.9337 6 3Z" /></svg>
             </span>
     </div>
     <div class="drop-line" style="display:none;"></div>
@@ -190,9 +190,12 @@
             StateHasChanged();
         }
     }
-    private void OpenNote(Guid noteId)
+    private async Task OpenNote(Guid noteId)
     {
         Navigation.NavigateTo($"/notes/{noteId}");
+
+        if (await NoteService.HasFolder(noteId))
+            UIController.InvokeFolderExpansion(await NoteService.GetAllDescendantFolderIdsAsync(noteId));
     }
 
     private async Task CreateNote()
