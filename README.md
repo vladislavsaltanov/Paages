@@ -61,7 +61,6 @@ dotnet test
 
 ## Roadmap
 
-- CI pipeline
 - Google OAuth
 - CRUD заметок через `Paages.Api`
 - Публикация заметки/папки по отдельной ссылке
