@@ -14,4 +14,5 @@ public class FakeTabsState : ITabsState
     public Guid? Close(Guid id) => null;
     public Task LoadFromCookiesAsync() => Task.CompletedTask;
     public void OpenBackground(Guid id) { }
+    public void CloseAll() {}
 }
