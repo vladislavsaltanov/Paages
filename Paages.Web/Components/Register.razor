@@ -4,13 +4,13 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.IdentityModel.JsonWebTokens
 @using Paages.Domain.Exceptions
 @layout EmptyLayout
 @attribute [AllowAnonymous]
 @attribute [ExcludeFromInteractiveRouting]
 @inject UserAccountService Accounts
 @inject NavigationManager Navigation
+@inject AccountTokenService Verification
 
 <PageTitle>Регистрация</PageTitle>
 
@@ -22,26 +22,34 @@
         <span class="auth-tab auth-tab-active">регистрация</span>
     </div>
 
-    <EditForm Model="_model!" OnValidSubmit="HandleRegister" FormName="register" class="auth-card">
-        <DataAnnotationsValidator />
+    @if (_sent)
+    {
+        <div class="auth-card"><p>Мы отправили письмо на @_model!.Email. Перейдите по ссылке, чтобы подтвердить почту.</p></div>
+    }
+    else
+    {
+        <EditForm Model="_model!" OnValidSubmit="HandleRegister" FormName="register" class="auth-card">
+            <DataAnnotationsValidator />
 
-        @if (_error is not null)
-        {
-            <p class="auth-error">@_error</p>
+            @if (_error is not null)
+            {
+                <p class="auth-error">@_error</p>
+            }
+
+            <div class="auth-field">
+                <label>введите свою почту</label>
+                <InputText @bind-Value="_model!.Email" placeholder="you@example.com" />
+            </div>
+
+            <div class="auth-field">
+                <label>введите пароль</label>
+                <InputText type="password" @bind-Value="_model!.Password" placeholder="••••••••" />
+            </div>
+
+            <button type="submit" class="auth-submit">зарегистрироваться</button>
+            <a href="/account/login-google" class="auth-google-btn">Зарегистрироваться через Google</a>
+        </EditForm>
         }
-
-        <div class="auth-field">
-            <label>введите свою почту</label>
-            <InputText @bind-Value="_model!.Email" placeholder="you@example.com" />
-        </div>
-
-        <div class="auth-field">
-            <label>введите пароль</label>
-            <InputText type="password" @bind-Value="_model!.Password" placeholder="••••••••" />
-        </div>
-
-        <button type="submit" class="auth-submit">зарегистрироваться</button>
-    </EditForm>
 </div>
 
 @code {
@@ -50,6 +58,7 @@
     protected override void OnInitialized() => _model ??= new LoginModel();
 
     private string? _error;
+    private bool _sent;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -59,25 +68,13 @@
         try
         {
             var user = await Accounts.RegisterUserAsync(_model!.Email, _model.Password);
-            await SignInAsync(user);
-            Navigation.NavigateTo("/notes", forceLoad: true);
+            await Verification.IssueEmailConfirmationAsync(user, Navigation.BaseUri);
+            _sent = true;
         }
         catch (EmailAlreadyRegisteredException)
         {
-            _error = "Такой email уже зарегистрирован";
+            _error = "Такая почта уже зарегистрирована!";
         }
-    }
-
-    private async Task SignInAsync(Paages.Domain.Entities.User user)
-    {
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Name, user.Email)
-        };
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
     }
 
     public class LoginModel

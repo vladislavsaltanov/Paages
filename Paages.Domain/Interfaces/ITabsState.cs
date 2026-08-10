@@ -11,4 +11,5 @@ public interface ITabsState
     Guid? Close(Guid id);
     Task LoadFromCookiesAsync();
     void OpenBackground(Guid id);
+    void CloseAll();
 }

@@ -31,7 +31,7 @@
         <div class="tb-actions">
             <form method="post" action="/account/logout" class="tb-logout-form">
                 <AntiforgeryToken />
-                <button type="submit" class="tb-icon tb-logout-btn">выйти</button>
+                <button type="submit" class="tb-icon tb-logout-btn" @onclick="() => CloseAllTabs()">выйти</button>
             </form>
             <button class="tb-view-btn">просмотр</button>
             <span class="tb-saved">@(AppState.LastSavedAt?.ToString("сохранено в HH:mm") ?? "не сохранено")</span>
@@ -134,6 +134,7 @@
 
     private void OnTreeChanged() => _ = RefreshPathAsync();
     private void OnTabsChanged() => _ = RefreshTitlesAsync();
+    private void CloseAllTabs() => TabsState.CloseAll();
 
     private async Task RefreshPathAsync()
     {

@@ -70,6 +70,13 @@ public class TabsState(IJSRuntime js) : ITabsState
         return ActiveTabId;
     }
 
+    public void CloseAll()
+    {
+        ActiveTabId = null;
+        OpenTabsIds.Clear();
+        _ = SaveAsync();
+    }
+
     async Task SaveAsync()
     {
         if (_module is null) return;

@@ -4,13 +4,13 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.IdentityModel.JsonWebTokens
 @using Paages.Domain.Exceptions
 @layout EmptyLayout
 @attribute [AllowAnonymous]
 @attribute [ExcludeFromInteractiveRouting]
 @inject UserAccountService Accounts
 @inject NavigationManager Navigation
+@using Paages.Infrastructure.Auth
 
 <PageTitle>Вход</PageTitle>
 
@@ -41,6 +41,10 @@
         </div>
 
         <button type="submit" class="auth-submit">авторизоваться</button>
+
+        <a href="/account/login-google" class="auth-google-btn">Войти через Google</a>
+        <a href="/forgot-password" class="auth-forgot-link">Забыли пароль?</a>
+
     </EditForm>
 </div>
 
@@ -60,6 +64,13 @@
         try
         {
             var user = await Accounts.ValidateCredentialsAsync(_model!.Email, _model!.Password);
+
+            if (user.EmailConfirmedAt is null)
+            {
+                _error = "Подтвердите почту - мы отправили письмо при регистрации";
+                return;
+            }
+
             await SignInAsync(user);
             Navigation.NavigateTo("/notes", forceLoad: true);
         }
@@ -69,17 +80,10 @@
         }
     }
 
-    private async Task SignInAsync(Paages.Domain.Entities.User user)
-    {
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Name, user.Email)
-        };
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
-    }
+    private Task SignInAsync(User user) =>
+        HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(AuthClaimsFactory.Build(user, CookieAuthenticationDefaults.AuthenticationScheme)));
+
 
     public class LoginModel
     {

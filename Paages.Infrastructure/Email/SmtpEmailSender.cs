@@ -29,7 +29,7 @@ public class SmtpEmailSender(IOptions<SmtpOptions> options) : IEmailSender
         message.Body = new TextPart("html") { Text = html };
 
         using var client = new SmtpClient();
-        await client.ConnectAsync(options.Value.Host, options.Value.Port, SecureSocketOptions.StartTls);
+        await client.ConnectAsync(options.Value.Host, options.Value.Port, SecureSocketOptions.SslOnConnect);
         await client.AuthenticateAsync(options.Value.Username, options.Value.Password);
         await client.SendAsync(message);
         await client.DisconnectAsync(true);
