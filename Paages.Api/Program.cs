@@ -8,6 +8,8 @@ using Paages.Api.ExceptionHandling;
 using Paages.Infrastructure.Auth;
 using Paages.Infrastructure.Data;
 using Paages.Infrastructure.Services;
+using Paages.Api.Auth;
+using Paages.Domain.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -76,10 +78,14 @@ builder.Services.AddRateLimiter(options =>
 });
 
 builder.Services.AddProblemDetails();
-builder.Services.AddExceptionHandler<AuthExceptionHandler>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, ApiCurrentUser>();
+builder.Services.AddExceptionHandler<AppExceptionHandler>();
 builder.Services.AddScoped<UserAccountService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ApiTokenService>();
+builder.Services.AddScoped<AppState>();
+builder.Services.AddScoped<NoteService>();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -96,5 +102,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapAuthEndpoints();
+app.MapNoteEndpoints();
+app.MapFolderEndpoints();
 
 app.Run();
