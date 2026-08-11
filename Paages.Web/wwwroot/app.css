@@ -116,6 +116,13 @@ h1:focus {
     gap: 16px;
 }
 
+.auth-card p {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 16px;
+    text-align: center;
+}
+
 .auth-form {
     width: 360px;
     display: flex;
