@@ -22,7 +22,7 @@
         <a class="auth-tab" href="/register">регистрация</a>
     </div>
 
-    <EditForm Model="_model!" OnValidSubmit="HandleLogin" FormName="login" class="auth-card">
+    <EditForm Model="_model!" OnValidSubmit="HandleLogin" FormName="login" class="auth-card" id="login-form">
         <DataAnnotationsValidator />
 
         @if (_error is not null)
@@ -40,11 +40,10 @@
             <InputText type="password" @bind-Value="_model!.Password" placeholder="••••••••" autocomplete="current-password" />
         </div>
 
-        <button type="submit" class="auth-submit">авторизоваться</button>
-
+        <button type="submit" class="auth-submit" @onclick="ResetError">авторизоваться</button>
         <a href="/account/login-google" class="auth-google-btn">Войти через Google</a>
         <a href="/forgot-password" class="auth-forgot-link">Забыли пароль?</a>
-
+    <AsciiLoader FormId="login-form"/>
     </EditForm>
 </div>
 
@@ -84,6 +83,8 @@
         HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(AuthClaimsFactory.Build(user, CookieAuthenticationDefaults.AuthenticationScheme)));
 
+
+    private void ResetError() => _error = null;
 
     public class LoginModel
     {

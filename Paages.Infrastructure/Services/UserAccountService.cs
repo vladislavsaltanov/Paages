@@ -33,10 +33,14 @@ public class UserAccountService(PaagesDbContext db)
         var normalizedEmail = Normalize(email);
         var user = await db.Users.SingleOrDefaultAsync(u => u.Email == normalizedEmail);
 
-        if (user is null || user.PasswordHash is null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-            throw new InvalidCredentialsException();
+        var valid = user is not null && user.PasswordHash is not null
+            && BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
 
-        return user;
+        // artificial wait to protect from password guessing
+        await Task.Delay(Random.Shared.Next(2000, 3000));
+
+        if (!valid) throw new InvalidCredentialsException();
+        return user!;
     }
 
     public async Task<User> FindOrCreateGoogleUserAsync(string googleId, string email, bool emailVerified)

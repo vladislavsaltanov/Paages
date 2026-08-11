@@ -28,7 +28,7 @@
     }
     else
     {
-        <EditForm Model="_model!" OnValidSubmit="HandleRegister" FormName="register" class="auth-card">
+        <EditForm Model="_model!" OnValidSubmit="HandleRegister" FormName="register" class="auth-card" id="register-form">
             <DataAnnotationsValidator />
 
             @if (_error is not null)
@@ -46,8 +46,10 @@
                 <InputText type="password" @bind-Value="_model!.Password" placeholder="••••••••" />
             </div>
 
-            <button type="submit" class="auth-submit">зарегистрироваться</button>
+            <button type="submit" class="auth-submit" @onclick="ResetError">зарегистрироваться</button>
+            
             <a href="/account/login-google" class="auth-google-btn">Зарегистрироваться через Google</a>
+        <AsciiLoader FormId="register-form"/>
         </EditForm>
         }
 </div>
@@ -76,7 +78,7 @@
             _error = "Такая почта уже зарегистрирована!";
         }
     }
-
+    private void ResetError() => _error = null;
     public class LoginModel
     {
         [Required, EmailAddress] public string Email { get; set; } = "";
