@@ -138,7 +138,11 @@
         new ContextMenuSeparator(),
         new ContextMenuItem("Удалить", () =>
         {
-            ConfirmDialogState.Open($"Удалить заметку «{Note.Title}»?", () => NoteService.DeleteNoteAsync(Note.Id));
+            ConfirmDialogState.Open($"Удалить заметку «{Note.Title}»?", async () =>
+            {
+                await NoteService.DeleteNoteAsync(Note.Id);
+                TabsState.Close(Note.Id);
+            });
             return Task.CompletedTask;
         }, Destructive: true)
 };

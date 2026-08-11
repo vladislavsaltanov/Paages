@@ -36,7 +36,7 @@ public class NoteServiceTests : IAsyncLifetime
         });
         await _db.SaveChangesAsync();
 
-        _sut = new NoteService(_db, new AppState(), new FakeTabsState(), new FakeCurrentUser(TestUserId));
+        _sut = new NoteService(_db, new AppState(), new FakeCurrentUser(TestUserId));
     }
 
     public Task DisposeAsync()

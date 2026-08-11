@@ -4,7 +4,7 @@ using Paages.Infrastructure.Data;
 using Paages.Domain.Interfaces;
 namespace Paages.Infrastructure.Services;
 
-public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsState, ICurrentUser currentUser)
+public class NoteService(PaagesDbContext db, AppState appState, ICurrentUser currentUser)
 {
     #region Get/Load
     public async Task<List<Folder>> GetFoldersAsync()
@@ -221,13 +221,6 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
         await db.SaveChangesAsync();
         appState.NotifyTreeChanged();
-
-        try
-        {
-            if (node is Note note)
-                tabsState.Close(note.Id);
-        } 
-        catch { /* there wasnt an open tab for this note, so nothing to close */ }
     }
     #endregion
     #region Move/Pin

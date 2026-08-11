@@ -7,8 +7,9 @@ public static class ClaimsPrincipalExtensions
 {
     public static Guid GetUserId(this ClaimsPrincipal principal)
     {
-        var sub = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
-            ?? throw new InvalidOperationException("Missing sub claim.");
-        return Guid.Parse(sub);
+        var raw = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
+            ?? principal.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? throw new InvalidOperationException("Missing sub/NameIdentifier claim.");
+        return Guid.Parse(raw);
     }
 }
