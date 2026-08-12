@@ -63,11 +63,19 @@ public class AuthServiceTests : IAsyncLifetime
             Id = Guid.NewGuid(),
             Email = email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword("irrelevant"),
+            EmailConfirmedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
         return user;
+    }
+
+    private async Task ConfirmEmailAsync(Guid userId)
+    {
+        var user = await _db.Users.SingleAsync(u => u.Id == userId);
+        user.EmailConfirmedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
     }
 
     private async Task<(RefreshToken Token, string RawValue)> SeedRefreshTokenAsync(
@@ -130,9 +138,10 @@ public class AuthServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateCredentialsAsync_CorrectPassword_ReturnsUser()
     {
-        await _accounts.RegisterUserAsync("valid@test.dev", "correctpassword");
+        var user = await _accounts.RegisterUserAsync("valid@test.dev", "correctpassword");
+        await ConfirmEmailAsync(user.Id);
 
-        var user = await _accounts.ValidateCredentialsAsync("valid@test.dev", "correctpassword");
+        user = await _accounts.ValidateCredentialsAsync("valid@test.dev", "correctpassword");
 
         Assert.Equal("valid@test.dev", user.Email);
     }
@@ -157,9 +166,10 @@ public class AuthServiceTests : IAsyncLifetime
     [Fact]
     public async Task ValidateCredentialsAsync_EmailDifferentCaseAndWhitespace_StillMatches()
     {
-        await _accounts.RegisterUserAsync("case@test.dev", "password123");
+        var user = await _accounts.RegisterUserAsync("case@test.dev", "password123");
+        await ConfirmEmailAsync(user.Id);
 
-        var user = await _accounts.ValidateCredentialsAsync("  CASE@Test.DEV  ", "password123");
+        user = await _accounts.ValidateCredentialsAsync("  CASE@Test.DEV  ", "password123");
 
         Assert.Equal("case@test.dev", user.Email);
     }
@@ -204,7 +214,8 @@ public class AuthServiceTests : IAsyncLifetime
     [Fact]
     public async Task LoginAsync_CorrectPassword_ReturnsTokenPair()
     {
-        await _accounts.RegisterUserAsync("login@test.dev", "password123");
+        var user = await _accounts.RegisterUserAsync("login@test.dev", "password123");
+        await ConfirmEmailAsync(user.Id);
 
         var result = await _sut.LoginAsync("login@test.dev", "password123");
 
@@ -214,7 +225,8 @@ public class AuthServiceTests : IAsyncLifetime
     [Fact]
     public async Task LoginAsync_WrongPassword_Throws()
     {
-        await _accounts.RegisterUserAsync("loginwrong@test.dev", "password123");
+        var user = await _accounts.RegisterUserAsync("loginwrong@test.dev", "password123");
+        await ConfirmEmailAsync(user.Id);
 
         await Assert.ThrowsAsync<InvalidCredentialsException>(
             () => _sut.LoginAsync("loginwrong@test.dev", "wrongpassword"));
@@ -224,6 +236,7 @@ public class AuthServiceTests : IAsyncLifetime
     public async Task LoginAsync_EachCall_MintsNewFamilyId()
     {
         var user = await _accounts.RegisterUserAsync("multilogin@test.dev", "password123");
+        await ConfirmEmailAsync(user.Id);
 
         await _sut.LoginAsync("multilogin@test.dev", "password123");
         await _sut.LoginAsync("multilogin@test.dev", "password123");
@@ -237,6 +250,7 @@ public class AuthServiceTests : IAsyncLifetime
     public async Task LoginAsync_AccessToken_HasCorrectSubjectIssuerAudience()
     {
         var user = await _accounts.RegisterUserAsync("claims@test.dev", "password123");
+        await ConfirmEmailAsync(user.Id);
 
         var result = await _sut.LoginAsync("claims@test.dev", "password123");
 
@@ -397,5 +411,14 @@ public class AuthServiceTests : IAsyncLifetime
 
         var reloaded = await _db.RefreshTokens.FindAsync(token.Id);
         Assert.NotNull(reloaded!.RevokedAt);
+    }
+    
+    [Fact]
+    public async Task LoginAsync_UnconfirmedEmail_ThrowsEmailNotConfirmed()
+    {
+        await _accounts.RegisterUserAsync("unconfirmed@test.dev", "password123");
+
+        await Assert.ThrowsAsync<EmailNotConfirmedException>(
+            () => _sut.LoginAsync("unconfirmed@test.dev", "password123"));
     }
 }
