@@ -68,19 +68,16 @@
         try
         {
             var user = await Accounts.ValidateCredentialsAsync(_model!.Email, _model!.Password);
-
-            if (user.EmailConfirmedAt is null)
-            {
-                _error = "Подтвердите почту - мы отправили письмо при регистрации";
-                return;
-            }
-
             await SignInAsync(user);
             Navigation.NavigateTo("/notes", forceLoad: true);
         }
         catch (InvalidCredentialsException)
         {
             _error = "Неверный email или пароль";
+        }
+        catch (EmailNotConfirmedException)
+        {
+            _error = "Подтвердите почту - мы отправили письмо при регистрации";
         }
     }
 

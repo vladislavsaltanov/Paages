@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Paages.Domain.Entities;
 using Paages.Domain.Enums;
 using Paages.Domain.Exceptions;
@@ -8,7 +9,7 @@ using Paages.Infrastructure.Data;
 
 namespace Paages.Infrastructure.Services;
 
-public class AccountTokenService(PaagesDbContext db, IEmailSender emailSender)
+public class AccountTokenService(PaagesDbContext db, IEmailSender emailSender, ILogger<AccountTokenService> logger)
 {
     private const int TokenTtlHours = 24;
 
@@ -82,8 +83,12 @@ public class AccountTokenService(PaagesDbContext db, IEmailSender emailSender)
             ExpiresAt = DateTime.UtcNow.AddHours(TokenTtlHours),
             CreatedAt = DateTime.UtcNow
         });
+        
         await db.SaveChangesAsync();
-        return $"{baseUrl.TrimEnd('/')}/{path}?token={rawToken}";
+        
+        var link = $"{baseUrl.TrimEnd('/')}/{path}?token={rawToken}";
+        logger.LogInformation("Account token issued for {Email} ({Purpose}): {Link}", user.Email, purpose, link);
+        return link;
     }
 
     private async Task<AccountToken> FindValidAsync(string rawToken, AccountTokenPurpose purpose)

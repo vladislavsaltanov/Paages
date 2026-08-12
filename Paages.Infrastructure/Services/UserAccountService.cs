@@ -40,6 +40,7 @@ public class UserAccountService(PaagesDbContext db)
         await Task.Delay(Random.Shared.Next(2000, 3000));
 
         if (!valid) throw new InvalidCredentialsException();
+        if (user!.EmailConfirmedAt is null) throw new EmailNotConfirmedException();
         return user!;
     }
 
