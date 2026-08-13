@@ -70,6 +70,8 @@ builder.Services.AddScoped<AppState>();
 builder.Services.AddScoped<ITabsState, TabsState>();
 builder.Services.AddScoped<ContextMenuState>();
 builder.Services.AddScoped<ConfirmDialogState>();
+builder.Services.AddScoped<PublicationService>();
+builder.Services.AddScoped<PublishDialogState>();
 
 var app = builder.Build();
 app.UseHttpsRedirection();

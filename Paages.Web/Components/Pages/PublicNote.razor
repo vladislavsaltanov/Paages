@@ -1,0 +1,52 @@
+@page "/p/{Slug}"
+@layout Paages.Web.Components.Layout.EmptyLayout
+@using Microsoft.AspNetCore.Authorization
+@using Paages.Infrastructure.Services
+@using Paages.Domain.Entities
+@attribute [AllowAnonymous]
+@inject PublicationService PublicationService
+
+<PageTitle>@(Publication?.Title ?? "Заметка") - Paages</PageTitle>
+
+@if (_isLoading)
+{
+    <div class="public-loading">Загрузка...</div>
+}
+else if (Publication is null)
+{
+    <div class="public-not-found">
+        <h1>404</h1>
+        <p>Заметка не найдена или была удалена.</p>
+    </div>
+}
+else
+{
+    <div class="public-wrapper">
+        <article class="public-article">
+            <h1 class="public-title">@Publication.Title</h1>
+
+            <div class="public-meta">
+                автор @Publication.AuthorNickname • изменено @(Publication.UpdatedAt.ToLocalTime().ToString("d MMMM yyyy в HH:mm"))
+            </div>
+
+            <div class="public-content ql-editor">
+                @((MarkupString)Publication.ContentHtml)
+            </div>
+        </article>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string Slug { get; set; } = "";
+
+    private Publication? Publication;
+    private bool _isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _isLoading = true;
+        Publication = await PublicationService.GetBySlugAsync(Slug);
+        _isLoading = false;
+    }
+}

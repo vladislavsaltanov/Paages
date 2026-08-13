@@ -75,6 +75,16 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+
+    options.AddPolicy("public", httpContext =>
+    RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
 });
 
 builder.Services.AddProblemDetails();
@@ -86,6 +96,7 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<ApiTokenService>();
 builder.Services.AddScoped<AppState>();
 builder.Services.AddScoped<NoteService>();
+builder.Services.AddScoped<PublicationService>();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -104,5 +115,6 @@ app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapNoteEndpoints();
 app.MapFolderEndpoints();
+app.MapPublicationEndpoints();
 
 app.Run();

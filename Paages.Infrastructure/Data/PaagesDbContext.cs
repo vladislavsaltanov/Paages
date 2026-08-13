@@ -13,7 +13,8 @@ public class PaagesDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<AccountToken> AccountTokens => Set<AccountToken>();
     public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
-
+    public DbSet<Publication> Publications => Set<Publication>();
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Note>()
@@ -86,6 +87,20 @@ public class PaagesDbContext : DbContext
             .HasOne(t => t.User)
             .WithMany()
             .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Publication>()
+            .HasIndex(p => p.NoteId)
+            .IsUnique();
+
+        modelBuilder.Entity<Publication>()
+            .HasIndex(p => p.Slug)
+            .IsUnique();
+
+        modelBuilder.Entity<Publication>()
+            .HasOne(p => p.Note)
+            .WithOne()
+            .HasForeignKey<Publication>(p => p.NoteId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
