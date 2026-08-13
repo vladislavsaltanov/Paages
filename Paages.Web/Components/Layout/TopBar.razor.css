@@ -15,26 +15,40 @@
     padding: 0 10px;
 }
 
-.tb-breadcrumbs 
-{ 
-    font-size: 14px; 
-    font-weight: 300; 
-    color: rgba(255, 255, 255, 0.6); 
-    white-space: nowrap; 
-    padding-left: 10px; 
-    max-width: clamp(min(93.75vw, 50ch), 70vw, 75ch); 
-}
-.tb-breadcrumbs .current 
-{ 
-    font-weight: 500; 
-    color: var(--accent); 
-    padding-left: 10px; 
-    max-width: clamp(min(93.75vw, 50ch), 70vw, 75ch); 
+.tb-breadcrumbs {
+    font-size: 14px;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    padding-left: 10px;
+    max-width: clamp(min(93.75vw, 50ch), 70vw, 75ch);
 }
 
-.tb-actions { display: flex; align-items: center; gap: 16px; }
-.tb-saved { font-size: 14px; font-weight: 300; color: rgba(255, 255, 255, 0.6); white-space: nowrap; margin-left: 24px; }
-.tb-icon { display: flex; cursor: pointer; }
+.tb-breadcrumbs .current {
+    font-weight: 500;
+    color: var(--accent);
+    padding-left: 10px;
+    max-width: clamp(min(93.75vw, 50ch), 70vw, 75ch);
+}
+
+.tb-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.tb-saved {
+    font-size: 14px;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.6);
+    white-space: nowrap;
+    margin-left: 24px;
+}
+
+.tb-icon {
+    display: flex;
+    cursor: pointer;
+}
 
 .tb-view-btn {
     height: 24px;
@@ -63,11 +77,21 @@
     box-sizing: border-box;
 }
 
-.tb-tab-active { border-bottom: 2px solid #ffdb89; font-weight: 500; }
-.tb-tab-inactive { border-bottom: 0.1px solid #ffffff23; font-weight: 400; opacity: .6; -webkit-text-stroke: 0.1px #ffffff23; }
+.tb-tab-active {
+    border-bottom: 2px solid #ffdb89;
+    font-weight: 500;
+}
+
+.tb-tab-inactive {
+    border-bottom: 0.1px solid #ffffff23;
+    font-weight: 400;
+    opacity: .6;
+    -webkit-text-stroke: 0.1px #ffffff23;
+}
 
 .tb-tab-title {
     flex: 1;
+    font-weight: 500;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -84,11 +108,18 @@
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
+
 .tb-tabs::-webkit-scrollbar {
-    display: none; /* chrome, safari */
+    display: none;
+    /* chrome, safari */
 }
 
-.tb-tabs-row { display: flex; align-items: center; min-width: 0; }
+.tb-tabs-row {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
 .tb-tabs-arrow {
     flex-shrink: 0;
     width: 24px;
@@ -102,6 +133,7 @@
     pointer-events: none;
     transition: opacity .15s ease;
 }
+
 .tb-tabs-row.can-left .tb-tabs-arrow-left,
 .tb-tabs-row.can-right .tb-tabs-arrow-right {
     opacity: 1;
