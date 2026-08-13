@@ -1,0 +1,18 @@
+@using System.Text.Json
+
+<script type="module" src="@Assets["Components/Layout/AsciiLoader.razor.js"]"></script>
+
+<div class="ascii-loader" data-form-id="@FormId" data-frames="@FramesJson" data-interval="@IntervalMs" hidden>
+    <span class="ascii-loader-text">@Text</span>
+    <span class="ascii-loader-frame"></span>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string FormId { get; set; } = "";
+    [Parameter] public string Text { get; set; } = "загружаю данные";
+    [Parameter] public string Animation { get; set; } = AsciiAnimations.Arrows;
+    [Parameter] public int IntervalMs { get; set; } = 120;
+
+    private string FramesJson => JsonSerializer.Serialize(
+        AsciiAnimations.Frames.TryGetValue(Animation, out var f) ? f : AsciiAnimations.Frames[AsciiAnimations.Arrows]);
+}

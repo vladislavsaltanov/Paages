@@ -1,0 +1,47 @@
+@using Paages.Web.Services
+@inject PublishDialogState DialogState
+@inject PublicationService Publications
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@implements IDisposable
+
+@if (DialogState.IsOpen)
+{
+    <div class="confirm-overlay" @onclick="DialogState.Close">
+        <div class="confirm-box" @onclick:stopPropagation="true">
+            @if (DialogState.IsLoading)
+            {
+                <p class="confirm-message">Публикуем...</p>
+            }
+            else if (DialogState.Error is not null)
+            {
+                <p class="confirm-message">@DialogState.Error</p>
+            }
+            else if (DialogState.Slug is not null)
+            {
+                var url = $"{Navigation.BaseUri}p/{DialogState.Slug}";
+                <p class="confirm-message">Заметка опубликована</p>
+                <input readonly value="@url" class="publish-url" />
+                <div class="confirm-actions">
+                    <button class="confirm-cancel" @onclick="() => CopyUrl(url)">Копировать</button>
+                    <button class="confirm-delete" @onclick="Revoke">Отозвать</button>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => DialogState.OnChange += StateHasChanged;
+
+    private async Task CopyUrl(string url) =>
+        await JS.InvokeVoidAsync("navigator.clipboard.writeText", url);
+
+    private async Task Revoke()
+    {
+        await Publications.RevokeAsync(DialogState.NoteId);
+        DialogState.Close();
+    }
+
+    public void Dispose() => DialogState.OnChange -= StateHasChanged;
+}

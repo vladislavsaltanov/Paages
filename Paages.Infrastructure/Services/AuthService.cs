@@ -31,7 +31,7 @@ public class AuthService(PaagesDbContext db, IOptions<JwtOptions> jwtOptions, Us
 
     public async Task<AuthResult> RefreshAsync(string refreshToken)
     {
-        var tokenHash = HashToken(refreshToken);
+        var tokenHash = SecureTokenGenerator.Hash(refreshToken);
         var found = await db.RefreshTokens.SingleOrDefaultAsync(t => t.TokenHash == tokenHash);
 
         if (found is null)
@@ -66,7 +66,7 @@ public class AuthService(PaagesDbContext db, IOptions<JwtOptions> jwtOptions, Us
 
     public async Task LogoutAsync(Guid userId, string refreshToken)
     {
-        var tokenHash = HashToken(refreshToken);
+        var tokenHash = SecureTokenGenerator.Hash(refreshToken);
         var found = await db.RefreshTokens.SingleOrDefaultAsync(t => t.TokenHash == tokenHash);
 
         if (found is null || found.UserId != userId)
@@ -78,13 +78,13 @@ public class AuthService(PaagesDbContext db, IOptions<JwtOptions> jwtOptions, Us
 
     private AuthResult IssueTokenPair(User user, Guid familyId, DateTime familyCreatedAt)
     {
-        var refreshTokenValue = GenerateRefreshTokenValue();
+        var refreshTokenValue = SecureTokenGenerator.Generate();
 
         db.RefreshTokens.Add(new RefreshToken
         {
             Id = Guid.NewGuid(),
             UserId = user.Id,
-            TokenHash = HashToken(refreshTokenValue),
+            TokenHash = SecureTokenGenerator.Hash(refreshTokenValue),
             FamilyId = familyId,
             FamilyCreatedAt = familyCreatedAt,
             ExpiresAt = DateTime.UtcNow.AddDays(jwtOptions.Value.RefreshTokenDays),
@@ -110,14 +110,4 @@ public class AuthService(PaagesDbContext db, IOptions<JwtOptions> jwtOptions, Us
         };
         return new JsonWebTokenHandler().CreateToken(descriptor);
     }
-
-    private static string GenerateRefreshTokenValue()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(32);
-        return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
-    }
-
-    private static string HashToken(string token) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
-
 }

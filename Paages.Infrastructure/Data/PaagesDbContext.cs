@@ -11,7 +11,10 @@ public class PaagesDbContext : DbContext
     public DbSet<Folder> Folders => Set<Folder>();
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
-
+    public DbSet<AccountToken> AccountTokens => Set<AccountToken>();
+    public DbSet<ApiToken> ApiTokens => Set<ApiToken>();
+    public DbSet<Publication> Publications => Set<Publication>();
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Note>()
@@ -60,5 +63,44 @@ public class PaagesDbContext : DbContext
 
         modelBuilder.Entity<Folder>()
             .HasIndex(f => f.UserId);
+
+        modelBuilder.Entity<User>()
+            .HasIndex(u => u.GoogleId)
+            .IsUnique()
+            .HasFilter("GoogleId IS NOT NULL");
+
+        modelBuilder.Entity<AccountToken>()
+            .HasIndex(t => t.TokenHash)
+            .IsUnique();
+
+        modelBuilder.Entity<AccountToken>()
+            .HasOne(t => t.User)
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ApiToken>()
+            .HasIndex(t => t.TokenHash)
+            .IsUnique();
+
+        modelBuilder.Entity<ApiToken>()
+            .HasOne(t => t.User)
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Publication>()
+            .HasIndex(p => p.NoteId)
+            .IsUnique();
+
+        modelBuilder.Entity<Publication>()
+            .HasIndex(p => p.Slug)
+            .IsUnique();
+
+        modelBuilder.Entity<Publication>()
+            .HasOne(p => p.Note)
+            .WithOne()
+            .HasForeignKey<Publication>(p => p.NoteId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

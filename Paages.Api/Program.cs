@@ -8,6 +8,8 @@ using Paages.Api.ExceptionHandling;
 using Paages.Infrastructure.Auth;
 using Paages.Infrastructure.Data;
 using Paages.Infrastructure.Services;
+using Paages.Api.Auth;
+using Paages.Domain.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,8 +23,12 @@ builder.Services.AddOptions<JwtOptions>()
 var jwtSigningKey = builder.Configuration["Jwt:SigningKey"]
     ?? throw new InvalidOperationException("Jwt:SigningKey is not configured.");
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = "Combined";
+        options.DefaultChallengeScheme = "Combined";
+    })
+    .AddJwtBearer("Jwt", options =>
     {
         options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
@@ -36,8 +42,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
+    })
+    .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, Paages.Api.Auth.ApiTokenAuthHandler>("ApiToken", null)
+    .AddPolicyScheme("Combined", "Jwt or ApiToken", options =>
+    {
+        options.ForwardDefaultSelector = context =>
+        {
+            var header = context.Request.Headers.Authorization.ToString();
+            return header.Count(c => c == '.') >= 2 ? "Jwt" : "ApiToken";
+        };
     });
-    
+
 builder.Services.AddAuthorization();
 builder.Services.AddValidation();
 
@@ -60,12 +75,28 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+
+    options.AddPolicy("public", httpContext =>
+    RateLimitPartition.GetFixedWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 60,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
 });
 
 builder.Services.AddProblemDetails();
-builder.Services.AddExceptionHandler<AuthExceptionHandler>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, ApiCurrentUser>();
+builder.Services.AddExceptionHandler<AppExceptionHandler>();
 builder.Services.AddScoped<UserAccountService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<ApiTokenService>();
+builder.Services.AddScoped<AppState>();
+builder.Services.AddScoped<NoteService>();
+builder.Services.AddScoped<PublicationService>();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
@@ -82,5 +113,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapAuthEndpoints();
+app.MapNoteEndpoints();
+app.MapFolderEndpoints();
+app.MapPublicationEndpoints();
 
 app.Run();

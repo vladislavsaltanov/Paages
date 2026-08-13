@@ -2,9 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Paages.Domain.Entities;
 using Paages.Infrastructure.Data;
 using Paages.Domain.Interfaces;
+using Paages.Domain.Exceptions;
 namespace Paages.Infrastructure.Services;
 
-public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsState, ICurrentUser currentUser)
+public class NoteService(PaagesDbContext db, AppState appState, ICurrentUser currentUser)
 {
     #region Get/Load
     public async Task<List<Folder>> GetFoldersAsync()
@@ -170,7 +171,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
     {
         var userId = await currentUser.GetIdAsync();
         var source = await FindNoteAsync(id);
-        if (source is null) throw new InvalidOperationException("Note not found.");
+        if (source is null) throw new NotFoundException("Note not found.");
 
         var siblings = await LoadSiblingsAsync(source.FolderId);
         foreach (var sibling in siblings)
@@ -221,13 +222,6 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
 
         await db.SaveChangesAsync();
         appState.NotifyTreeChanged();
-
-        try
-        {
-            if (node is Note note)
-                tabsState.Close(note.Id);
-        } 
-        catch { /* there wasnt an open tab for this note, so nothing to close */ }
     }
     #endregion
     #region Move/Pin
@@ -237,7 +231,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ITabsState tabsS
         {
             var target = await FindFolderAsync(newParentId.Value);
             if (target is null)
-                throw new InvalidOperationException("Target folder not found.");
+                throw new NotFoundException("Target folder not found.");
         }
 
         // check if folder is a descendent of new parent folder via loop

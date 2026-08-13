@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Paages.Infrastructure.Data;
 
@@ -10,9 +11,11 @@ using Paages.Infrastructure.Data;
 namespace Paages.Infrastructure.Migrations
 {
     [DbContext(typeof(PaagesDbContext))]
-    partial class PaagesDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260810002325_AddGoogleOAuthAndAccountManagement")]
+    partial class AddGoogleOAuthAndAccountManagement
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.10");
@@ -165,54 +168,6 @@ namespace Paages.Infrastructure.Migrations
                     b.ToTable("Notes");
                 });
 
-            modelBuilder.Entity("Paages.Domain.Entities.Publication", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("AuthorNickname")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ContentHtml")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("NoteId")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("PublishedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Slug")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NoteId")
-                        .IsUnique();
-
-                    b.HasIndex("Slug")
-                        .IsUnique();
-
-                    b.ToTable("Publications");
-                });
-
             modelBuilder.Entity("Paages.Domain.Entities.RefreshToken", b =>
                 {
                     b.Property<Guid>("Id")
@@ -347,17 +302,6 @@ namespace Paages.Infrastructure.Migrations
                     b.Navigation("Folder");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Paages.Domain.Entities.Publication", b =>
-                {
-                    b.HasOne("Paages.Domain.Entities.Note", "Note")
-                        .WithOne()
-                        .HasForeignKey("Paages.Domain.Entities.Publication", "NoteId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Note");
                 });
 
             modelBuilder.Entity("Paages.Domain.Entities.RefreshToken", b =>

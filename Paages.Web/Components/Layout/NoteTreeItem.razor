@@ -8,6 +8,7 @@
 @inject ContextMenuState ContextMenuState
 @inject ITabsState TabsState
 @inject ConfirmDialogState ConfirmDialogState
+@inject PublishDialogState PublishDialogState
 @inject IJSRuntime JS
 @inject IUIController UIController
 @inject INavigationController NavigationController
@@ -47,6 +48,7 @@
     private ElementReference _renameInputRef;
     [Inject] private AppState AppState { get; set; } = null!;
     [Inject] private NoteService NoteService { get; set; } = null!;
+    [Inject] private PublicationService Publications { get; set; } = null!;
     [Parameter] public Guid? NextSiblingId { get; set; }
     [Parameter] public bool ForceDisabled { get; set; } = false;
     [Parameter, EditorRequired] public Note Note { get; set; } = null!;
@@ -134,14 +136,36 @@
         new ContextMenuItem("Дублировать", () => { return NoteService.DuplicateNoteAsync(Note.Id); }),
         new ContextMenuSeparator(),
         new ContextMenuItem("Скачать", () => Task.CompletedTask),
-        new ContextMenuItem("Поделиться", () => Task.CompletedTask),
+        new ContextMenuItem("Поделиться", () =>
+        {
+            PublishDialogState.Open(Note.Id);
+            PublishDialogState.SetLoading(true);
+            return PublishAsync();
+        }),
         new ContextMenuSeparator(),
         new ContextMenuItem("Удалить", () =>
         {
-            ConfirmDialogState.Open($"Удалить заметку «{Note.Title}»?", () => NoteService.DeleteNoteAsync(Note.Id));
+            ConfirmDialogState.Open($"Удалить заметку «{Note.Title}»?", async () =>
+            {
+                await NoteService.DeleteNoteAsync(Note.Id);
+                TabsState.Close(Note.Id);
+            });
             return Task.CompletedTask;
         }, Destructive: true)
 };
+
+    private async Task PublishAsync()
+    {
+        try
+        {
+            var publication = await Publications.PublishAsync(Note.Id);
+            PublishDialogState.SetResult(publication.Slug);
+        }
+        catch (Exception)
+        {
+            PublishDialogState.SetError("Не удалось опубликовать заметку");
+        }
+    }
 
     private void OpenContextMenu(MouseEventArgs e)
     {

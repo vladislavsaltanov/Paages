@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Paages.Domain.Entities;
+using Paages.Domain.Exceptions;
 using Paages.Infrastructure.Data;
 using Paages.Infrastructure.Services;
 using Paages.Tests.TestHelpers;
@@ -36,7 +37,7 @@ public class NoteServiceTests : IAsyncLifetime
         });
         await _db.SaveChangesAsync();
 
-        _sut = new NoteService(_db, new AppState(), new FakeTabsState(), new FakeCurrentUser(TestUserId));
+        _sut = new NoteService(_db, new AppState(), new FakeCurrentUser(TestUserId));
     }
 
     public Task DisposeAsync()
@@ -196,11 +197,11 @@ public class NoteServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task MoveAsync_TargetFolderNotFound_ThrowsInvalidOperationException()
+    public async Task MoveAsync_TargetFolderNotFound_ThrowsNotFoundException()
     {
         var note = await _sut.CreateNoteAsync(null);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(
+        await Assert.ThrowsAsync<NotFoundException>(
             () => _sut.MoveAsync(note.Id, isFolder: false, newParentId: Guid.NewGuid(), insertBeforeId: null));
     }
 }

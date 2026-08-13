@@ -11,11 +11,13 @@
     --font-mono: 'JetBrains Mono', system-ui, sans-serif;
 }
 
-html, body {
+html,
+body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
-a, .btn-link {
+a,
+.btn-link {
     color: #006bb7;
 }
 
@@ -25,8 +27,12 @@ a, .btn-link {
     border-color: #1861ac;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+.btn:focus,
+.btn:active:focus,
+.btn-link.nav-link:focus,
+.form-control:focus,
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
 .content {
@@ -55,20 +61,22 @@ h1:focus {
     color: white;
 }
 
-    .blazor-error-boundary::after {
-        content: "An error has occurred."
-    }
+.blazor-error-boundary::after {
+    content: "An error has occurred."
+}
 
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+.form-floating>.form-control-plaintext::placeholder,
+.form-floating>.form-control::placeholder {
     color: var(--bs-secondary-color);
     text-align: end;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+.form-floating>.form-control-plaintext:focus::placeholder,
+.form-floating>.form-control:focus::placeholder {
     text-align: start;
 }
 
@@ -108,12 +116,77 @@ h1:focus {
 .auth-card {
     width: 360px;
     padding: 24px;
-    border: 1px solid rgba(255,255,255,0.23);
+    border: 1px solid rgba(255, 255, 255, 0.23);
     border-radius: 12px;
     background-color: var(--bg-secondary);
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+.auth-card p {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 16px;
+    text-align: center;
+}
+
+.auth-form {
+    width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.auth-fields {
+    padding: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.23);
+    border-radius: 12px;
+    background-color: var(--bg-secondary);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.auth-google-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.23);
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 15px;
+    text-decoration: none;
+    transition: background-color .2s ease, border-color .2s ease;
+}
+
+.auth-google-btn:hover {
+    background-color: var(--bg-tertiary);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.auth-google-btn svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.auth-forgot-link {
+    text-align: center;
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.auth-forgot-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
 }
 
 .auth-field label {
@@ -127,7 +200,7 @@ h1:focus {
 .auth-field input {
     width: 100%;
     padding: 14px 16px;
-    border: 1px solid rgba(255,255,255,0.23);
+    border: 1px solid rgba(255, 255, 255, 0.23);
     border-radius: 12px;
     background-color: var(--bg-secondary);
     color: var(--text-primary);
