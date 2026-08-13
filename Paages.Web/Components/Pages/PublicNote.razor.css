@@ -15,12 +15,13 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    
+
     view-transition-name: --public-note;
 }
 
 .public-title {
-    font-size: clamp(32px, 5cqi, 44px);
+    font-family: var(--font-mono);
+    font-size: clamp(38px, 6cqi, 52px);
     font-weight: 700;
     color: var(--text-primary, #fff);
     margin-block: 0 5px;
@@ -30,7 +31,8 @@
 .public-meta {
     font-size: 14px;
     font-weight: 300;
-    color: var(--text-primary, #fff);
+    font-family: var(--font-mono, #fff);
+    color: var(--text-primary);
     opacity: 0.6;
     margin-block-end: 30px;
 }
@@ -52,9 +54,23 @@
     margin-block-end: 0;
 }
 
-::deep .public-content h1 { font-size: 32px; font-weight: 700; margin-block: 0 12px; }
-::deep .public-content h2 { font-size: 26px; font-weight: 700; margin-block: 0 12px; }
-::deep .public-content h3 { font-size: 22px; font-weight: 700; margin-block: 0 12px; }
+::deep .public-content h1 {
+    font-size: 32px;
+    font-weight: 700;
+    margin-block: 0 12px;
+}
+
+::deep .public-content h2 {
+    font-size: 26px;
+    font-weight: 700;
+    margin-block: 0 12px;
+}
+
+::deep .public-content h3 {
+    font-size: 22px;
+    font-weight: 700;
+    margin-block: 0 12px;
+}
 
 ::deep .public-content ul {
     margin-block: 0 16px;
@@ -70,7 +86,7 @@
     box-sizing: border-box;
 }
 
-::deep .public-content blockquote + blockquote {
+::deep .public-content blockquote+blockquote {
     margin-block-start: -16px;
     padding-block-start: 0;
 }

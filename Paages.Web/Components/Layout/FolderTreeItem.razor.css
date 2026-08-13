@@ -7,15 +7,17 @@
     display: flex;
     align-items: center;
 }
+
 .sb-tree-row:hover {
     background-color: #2c2c2e;
 }
+
 .sb-tree-row-content {
     display: flex;
     align-items: center;
     gap: 10px;
     font-size: 14px;
-    font-weight: 400;
+    font-weight: 600;
     color: #fff;
     width: 100%;
     min-width: 0;
@@ -33,7 +35,10 @@
     background-color: #2c2c2e;
 }
 
-.sb-tree-children { position: relative; }
+.sb-tree-children {
+    position: relative;
+}
+
 .sb-tree-guide {
     position: absolute;
     top: 0;
@@ -43,7 +48,9 @@
     opacity: .6;
 }
 
-.chevron-collapsed { transform: rotate(-90deg); }
+.chevron-collapsed {
+    transform: rotate(-90deg);
+}
 
 .sb-tree-rename-input {
     background: transparent;
