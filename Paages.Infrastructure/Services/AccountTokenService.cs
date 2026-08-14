@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Paages.Domain.Entities;
 using Paages.Domain.Enums;
@@ -9,29 +10,32 @@ using Paages.Infrastructure.Data;
 
 namespace Paages.Infrastructure.Services;
 
-public class AccountTokenService(PaagesDbContext db, IEmailSender emailSender, ILogger<AccountTokenService> logger)
+public class AccountTokenService(PaagesDbContext db, IEmailSender emailSender, ILogger<AccountTokenService> logger, IConfiguration config)
 {
     private const int TokenTtlHours = 24;
 
-    public async Task IssueEmailConfirmationAsync(User user, string baseUrl)
+    private string GetBaseUrl(string? baseUrl) =>
+        baseUrl ?? config["App:BaseUrl"] ?? throw new InvalidOperationException("App:BaseUrl is not configured.");
+
+    public async Task IssueEmailConfirmationAsync(User user, string? baseUrl = null)
     {
-        var link = await IssueAsync(user, AccountTokenPurpose.EmailConfirmation, baseUrl, "account/confirm-email");
+        var link = await IssueAsync(user, AccountTokenPurpose.EmailConfirmation, GetBaseUrl(baseUrl), "account/confirm-email");
         await emailSender.SendEmailConfirmationAsync(user.Email, link);
     }
 
-    public async Task IssuePasswordResetAsync(User user, string baseUrl)
+    public async Task IssuePasswordResetAsync(User user, string? baseUrl = null)
     {
-        var link = await IssueAsync(user, AccountTokenPurpose.PasswordReset, baseUrl, "reset-password");
+        var link = await IssueAsync(user, AccountTokenPurpose.PasswordReset, GetBaseUrl(baseUrl), "reset-password");
         await emailSender.SendPasswordResetAsync(user.Email, link);
     }
 
-    public async Task IssueEmailChangeAsync(User user, string newEmail, string baseUrl)
+    public async Task IssueEmailChangeAsync(User user, string newEmail, string? baseUrl = null)
     {
         var normalizedNewEmail = newEmail.Trim().ToLowerInvariant();
         if (await db.Users.AnyAsync(u => u.Email == normalizedNewEmail))
             throw new EmailAlreadyRegisteredException();
 
-        var link = await IssueAsync(user, AccountTokenPurpose.EmailChange, baseUrl, "account/confirm-email-change", normalizedNewEmail);
+        var link = await IssueAsync(user, AccountTokenPurpose.EmailChange, GetBaseUrl(baseUrl), "account/confirm-email-change", normalizedNewEmail);
         await emailSender.SendEmailChangeAsync(normalizedNewEmail, link);
     }
 
