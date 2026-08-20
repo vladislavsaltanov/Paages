@@ -15,7 +15,7 @@ Blazor Server-приложение для заметок: иерархия па�
 - Google OAuth (server-side), автолинк к существующему аккаунту по email
 - Подтверждение почты (блокирует вход до подтверждения), сброс пароля, смена почты
 - Personal Access Token (PAT) для сервисных клиентов - хешируется, отзывается, именуется
-- 54 unit-теста (`Paages.Tests`) на SQLite in-memory, CI: build → migrations check → test
+- 72 unit-теста (`Paages.Tests`) на SQLite in-memory, CI: build → migrations check → test
 - Публикация заметок с последующим получением ссылки на ее просмотр без авторизации. Возможность обновления опубликованной заметки без смены ссылки.
 
 ## Стек
