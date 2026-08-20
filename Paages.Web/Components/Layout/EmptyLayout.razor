@@ -1,3 +1,24 @@
 @inherits LayoutComponentBase
 
-@Body
+<ErrorBoundary @ref="_errorBoundary">
+    <ChildContent>
+        @Body
+    </ChildContent>
+    <ErrorContent>
+        <div class="error-boundary-backdrop"></div>
+        <div class="error-boundary-fallback">
+            <span class="error-boundary-icon">⚠</span>
+            <span>Произошла непредвиденная ошибка</span>
+            <button class="error-boundary-retry" @onclick="Recover">Повторить</button>
+        </div>
+    </ErrorContent>
+</ErrorBoundary>
+
+@code {
+    private ErrorBoundary? _errorBoundary;
+
+    // Auto-recover on navigation so the error banner doesn't persist across pages
+    protected override void OnParametersSet() => _errorBoundary?.Recover();
+
+    private void Recover() => _errorBoundary?.Recover();
+}

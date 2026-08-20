@@ -112,7 +112,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ICurrentUser cur
     public async Task SaveNoteContentAsync(Guid id, string html)
     {
         var note = await FindNoteAsync(id);
-        if (note is null) return;
+        if (note is null) throw new NotFoundException("Note not found.");
 
         note.ContentHtml = html;
         note.UpdatedAt = DateTime.UtcNow;
@@ -199,7 +199,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ICurrentUser cur
     public async Task DeleteNoteAsync(Guid id)
     {
         var note = await FindNoteAsync(id);
-        if (note is null) return;
+        if (note is null) throw new NotFoundException("Note not found.");
 
         await DeleteNodeAsync(note, note.FolderId, db.Notes);
         appState.NotifyTreeChanged();
@@ -208,7 +208,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ICurrentUser cur
     public async Task DeleteFolderAsync(Guid id)
     {
         var folder = await FindFolderAsync(id);
-        if (folder is null) return;
+        if (folder is null) throw new NotFoundException("Folder not found.");
 
         await DeleteNodeAsync(folder, folder.ParentId, db.Folders);
         appState.NotifyTreeChanged();
@@ -256,7 +256,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ICurrentUser cur
         if (isFolder)
         {
             var folder = await FindFolderAsync(nodeId);
-            if (folder is null) return;
+            if (folder is null) throw new NotFoundException("Folder not found.");
             oldParentId = folder.ParentId;
             folder.ParentId = newParentId;
             node = folder;
@@ -264,7 +264,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ICurrentUser cur
         else
         {
             var note = await FindNoteAsync(nodeId);
-            if (note is null) return;
+            if (note is null) throw new NotFoundException("Note not found.");
             oldParentId = note.FolderId;
             note.FolderId = newParentId;
             node = note;
@@ -302,14 +302,14 @@ public class NoteService(PaagesDbContext db, AppState appState, ICurrentUser cur
         if (isFolder)
         {
             var folder = await FindFolderAsync(nodeId);
-            if (folder is null) return;
+            if (folder is null) throw new NotFoundException("Folder not found.");
 
             folder.IsPinned = !folder.IsPinned;
         }
         else
         {
             var note = await FindNoteAsync(nodeId);
-            if (note is null) return;
+            if (note is null) throw new NotFoundException("Note not found.");
 
             note.IsPinned = !note.IsPinned;
         }
@@ -322,7 +322,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ICurrentUser cur
     public async Task<string> RenameNoteAsync(Guid id, string title)
     {
         var note = await FindNoteAsync(id);
-        if (note is null) return title;
+        if (note is null) throw new NotFoundException("Note not found.");
 
         note.Title = string.IsNullOrWhiteSpace(title) ? "Без названия" : title.Trim().Truncate(100)!;
         note.UpdatedAt = DateTime.UtcNow;
@@ -334,7 +334,7 @@ public class NoteService(PaagesDbContext db, AppState appState, ICurrentUser cur
     public async Task<string> RenameFolderAsync(Guid id, string name)
     {
         var folder = await FindFolderAsync(id);
-        if (folder is null) return name;
+        if (folder is null) throw new NotFoundException("Folder not found.");
 
         folder.Name = string.IsNullOrWhiteSpace(name) ? "Новая папка" : name.Trim().Truncate(100)!;
         await db.SaveChangesAsync();

@@ -75,7 +75,7 @@
         try
         {
             var user = await Accounts.RegisterUserAsync(_model!.Email, _model.Password);
-            await Verification.IssueEmailConfirmationAsync(user, Navigation.BaseUri);
+            await Verification.IssueEmailConfirmationAsync(user);
             _sent = true;
         }
         catch (EmailAlreadyRegisteredException)

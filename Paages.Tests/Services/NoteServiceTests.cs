@@ -115,9 +115,7 @@ public class NoteServiceTests : IAsyncLifetime
     [Fact]
     public async Task RenameNoteAsync_NoteNotFound_ReturnsInputTitleUnchanged()
     {
-        var result = await _sut.RenameNoteAsync(Guid.NewGuid(), "неважно");
-
-        Assert.Equal("неважно", result);
+        await Assert.ThrowsAsync<NotFoundException>(() => _sut.RenameNoteAsync(Guid.NewGuid(), "неважно"));
     }
 
     [Fact]
