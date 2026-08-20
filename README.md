@@ -78,11 +78,11 @@ dotnet test
 
 - `/settings`: UI для никнейма, смены почты, управления PAT
 - HTTP-level тесты `Paages.Api` (`WebApplicationFactory`)
-- Тесты Stage 3 (`AccountTokenService`, `ApiTokenService`, Google-автолинк)
-- CRUD заметок через `Paages.Api`
-- Публикация заметки/папки по отдельной ссылке
 - MCP-сервер
 - Экспорт в markdown/PDF
+- Полировка редактирования текста в режиме реального времени (в основном code-blocks)
+- CD
+- Адаптация интерфейса под мобильные устройства
 
 ## Лицензия
 
