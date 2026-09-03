@@ -146,6 +146,7 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
                         key: 'Enter',
                         handler: function (range, context) {
                             if (context.prefix !== '---') return true; // not a divider line, normal Enter
+                            if (context.format && context.format['code-block']) return true; // raw text inside a code block
 
                             const lineStart = range.index - 3;
                             quill.deleteText(lineStart, 3, 'user');
@@ -274,6 +275,13 @@ function insertMarkdownPaste(quill, text) {
     const lines = text.replace(/\r\n/g, '\n').split('\n');
     if (lines.length > 1 && lines[lines.length - 1] === '') lines.pop(); // drop empty line from a copied full line
 
+    // True when the paste point sits right before the line's terminating '\n'
+    // (i.e. at the very end of its line). Determines whether we may reuse that
+    // '\n' via retain() - doing it mid-line would apply a block format to an
+    // ordinary character and corrupt the document.
+    const [pasteLine, pasteOffset] = quill.getLine(range.index);
+    const atLineEnd = !!pasteLine && pasteOffset === pasteLine.length() - 1;
+
     const content = new Delta();
     let insertedLength = 0;
 
@@ -285,11 +293,35 @@ function insertMarkdownPaste(quill, text) {
             if (i < lines.length - 1) {
                 content.insert('\n', { 'code-block': true });
                 insertedLength += 1;
-            } else {
+            } else if (atLineEnd) {
                 content.retain(1, { 'code-block': true }); // reuse existing closing '\n'
             }
         });
     } else {
+        // A whole fenced block (``` ... ```) pasted outside a code block:
+        // convert the fences into real code-block formatting instead of
+        // leaving literal '```' lines behind. Only at a line end, so the
+        // surrounding text is not swallowed into the block.
+        const isFenceStart = /^```[^\n]*$/.test(lines[0].trim());
+        if (atLineEnd && lines.length >= 3 && isFenceStart && lines[lines.length - 1].trim() === '```') {
+            // Insert the code content, terminating every line (including the
+            // last) with a code-block '\n'. The note's existing '\n' then ends
+            // up terminating a fresh empty plain-text line right after the
+            // block, so the caret lands outside the code block.
+            lines.slice(1, -1).forEach(line => {
+                content.insert(line);
+                content.insert('\n', { 'code-block': true });
+                insertedLength += line.length + 1;
+            });
+
+            quill.updateContents(
+                new Delta().retain(range.index).delete(range.length).concat(content),
+                'user'
+            );
+            quill.setSelection(range.index + insertedLength, 0, 'user');
+            return;
+        }
+
         lines.forEach((line, i) => {
             let blockFormat = null;
             let lineText = line;
@@ -344,6 +376,11 @@ function handleAutoFormat(quill, delta, entry) {
         quill.history.cutoff();
         return;
     }
+
+    // Everything inside a code block is raw text: markdown autoformatting
+    // (line and inline patterns below) must never touch it, otherwise typing
+    // '# ', '- ', '> ', '// ', '**x**', '`x`' etc. would mangle the code.
+    if (currentFormat['code-block']) return;
 
     // Check line-start patterns (#, -, >) first.
     for (const pattern of LINE_PATTERNS) {
