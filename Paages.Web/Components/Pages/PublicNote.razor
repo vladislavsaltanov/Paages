@@ -34,6 +34,39 @@ else
             </div>
         </article>
     </div>
+
+    <script>
+        // Syntax highlighting for code blocks in the published note. highlight.js
+        // is loaded globally in App.razor. Blocks already containing hljs token
+        // spans (saved from the editor) are left untouched. Detection runs once
+        // per block; lines are highlighted individually.
+        (function () {
+            document.querySelectorAll('.public-content .ql-code-block-container').forEach(function (container) {
+                if (container.querySelector('[class*="hljs"]')) return;
+                const lines = container.querySelectorAll('.ql-code-block');
+                if (!lines.length) return;
+
+                // Prefer the language persisted by the editor (data-language,
+                // e.g. 'cs' from '```csharp'); fall back to auto-detection.
+                const stored = (container.getAttribute('data-language')
+                    || (lines[0] && lines[0].getAttribute('data-language'))
+                    || '').toLowerCase();
+                const detected = hljs.highlightAuto(
+                    Array.from(lines).map(function (l) { return l.textContent; }).join('\n')
+                ).language;
+
+                const lang = stored && stored !== 'plain' && stored !== 'true' && hljs.getLanguage(stored)
+                    ? stored
+                    : (detected && hljs.getLanguage(detected) ? detected : null);
+
+                lines.forEach(function (line) {
+                    line.innerHTML = lang
+                        ? hljs.highlight(line.textContent, { language: lang }).value
+                        : hljs.highlightAuto(line.textContent).value;
+                });
+            });
+        })();
+    </script>
 }
 
 @code {

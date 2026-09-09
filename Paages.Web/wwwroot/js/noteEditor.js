@@ -22,6 +22,87 @@ class DividerBlot extends BlockEmbed {
 }
 Quill.register(DividerBlot, true);
 
+// Official Quill syntax module: present in the CDN bundle but not auto-enabled.
+// Requires highlight.js (window.hljs) on the page before the editor is created
+// (App.razor loads it before quill.js). Language per block defaults to 'plain'
+// (no highlighting) and is switchable via the select the module mounts on
+// every code block; the choice is persisted in data-language.
+const Syntax = Quill.import('modules/syntax');
+Quill.register('modules/syntax', Syntax, true);
+Syntax.register(); // swaps in the language-aware code blot (data-language attribute)
+
+// Languages offered by the syntax module (keys must exist in the hljs common build).
+const SYNTAX_LANGUAGES = [
+    { key: 'plain', label: 'Plain' },
+    { key: 'bash', label: 'Bash' },
+    { key: 'c', label: 'C' },
+    { key: 'cpp', label: 'C++' },
+    { key: 'cs', label: 'C#' },
+    { key: 'css', label: 'CSS' },
+    { key: 'diff', label: 'Diff' },
+    { key: 'go', label: 'Go' },
+    { key: 'java', label: 'Java' },
+    { key: 'javascript', label: 'JavaScript' },
+    { key: 'json', label: 'JSON' },
+    { key: 'kotlin', label: 'Kotlin' },
+    { key: 'markdown', label: 'Markdown' },
+    { key: 'php', label: 'PHP' },
+    { key: 'python', label: 'Python' },
+    { key: 'ruby', label: 'Ruby' },
+    { key: 'rust', label: 'Rust' },
+    { key: 'sql', label: 'SQL' },
+    { key: 'swift', label: 'Swift' },
+    { key: 'typescript', label: 'TypeScript' },
+    { key: 'xml', label: 'HTML/XML' },
+    { key: 'yaml', label: 'YAML' },
+];
+const SYNTAX_LANGUAGE_KEYS = new Set(SYNTAX_LANGUAGES.map(l => l.key));
+
+// Telegram-style fence aliases: ```csharp, ```js, ```py ... -> canonical key.
+const LANG_ALIASES = {
+    'c#': 'cs', csharp: 'cs', cs: 'cs',
+    'c++': 'cpp', cpp: 'cpp', c: 'c',
+    js: 'javascript', javascript: 'javascript', node: 'javascript', jsx: 'javascript',
+    ts: 'typescript', tsx: 'typescript', typescript: 'typescript',
+    py: 'python', python: 'python', python3: 'python',
+    sh: 'bash', shell: 'bash', bash: 'bash', zsh: 'bash',
+    html: 'xml', xml: 'xml', svg: 'xml',
+    json: 'json', yml: 'yaml', yaml: 'yaml',
+    kts: 'kotlin', kotlin: 'kotlin',
+    rb: 'ruby', ruby: 'ruby',
+    rs: 'rust', rust: 'rust',
+    golang: 'go', go: 'go',
+    swift: 'swift', java: 'java', sql: 'sql', css: 'css', php: 'php',
+    md: 'markdown', markdown: 'markdown', diff: 'diff',
+};
+
+function normalizeLanguage(raw) {
+    const key = String(raw).toLowerCase().trim();
+    const mapped = LANG_ALIASES[key] ?? key;
+    return SYNTAX_LANGUAGE_KEYS.has(mapped) ? mapped : 'plain';
+}
+
+// '```csharp' + Space (handleAutoFormat) or + Enter (createCodeFence binding)
+// turns the line into a code block with the language preset.
+const FENCE_LANG_REGEX = /^```([a-zA-Z0-9+#_-]+)$/;
+
+function insertCodeBlockWithLanguage(quill, lineStart, deleteLength, rawLang) {
+    quill.history.cutoff();
+    quill.deleteText(lineStart, deleteLength, 'user');
+    quill.formatLine(lineStart, 1, { 'code-block': normalizeLanguage(rawLang) }, 'user');
+    quill.history.cutoff();
+}
+
+// The syntax module mounts a language <select> inside every code block (.ql-ui).
+// It must never leak into saved HTML: strip it before persisting.
+function stripEditorUi(html) {
+    if (!html || !html.includes('ql-ui')) return html;
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    template.content.querySelectorAll('.ql-ui').forEach(el => el.remove());
+    return template.innerHTML;
+}
+
 // Line-level auto-format patterns, checked after user types space, '*' or '_'.
 const LINE_PATTERNS = [
     { regex: /^#\s$/, format: { header: 1 }, stripLen: 2 },
@@ -30,7 +111,7 @@ const LINE_PATTERNS = [
     { regex: /^-\s$/, format: { list: 'bullet' }, stripLen: 2 },
     { regex: /^>\s$/, format: { blockquote: true }, stripLen: 2 },
     { regex: /^\/\/\s$/, format: { comment: true }, stripLen: 3 },
-    { regex: /^```$/, format: { 'code-block': true }, stripLen: 3 },
+    { regex: /^```$/, format: { 'code-block': 'plain' }, stripLen: 3 },
 ];
 const PASTE_BLOCK_PATTERNS = [
     { regex: /^###\s+/, format: { header: 3 } },
@@ -64,6 +145,8 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
         modules: {
             // Built-in Snow toolbar disabled: app uses its own floating toolbar.
             toolbar: false,
+            // Syntax highlighting for code blocks (language defaults to 'plain').
+            syntax: { interval: 500, languages: SYNTAX_LANGUAGES },
             clipboard: {
                 matchVisual: false
             },
@@ -118,7 +201,54 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
                             quill.formatLine(range.index + 1, 1, 'comment', false, 'user');
                             quill.setSelection(range.index + 1, 0, 'user');
                         }
-                    }, 
+                    },
+                    // Telegram-style fence: '```csharp' + Enter creates a code block
+                    // with the language preset (Space works too, see handleAutoFormat).
+                    createCodeFence: {
+                        key: 'Enter',
+                        collapsed: true,
+                        prefix: FENCE_LANG_REGEX,
+                        handler: function (range, context) {
+                            const rawLang = context.prefix.match(FENCE_LANG_REGEX)[1];
+                            insertCodeBlockWithLanguage(quill, range.index - context.prefix.length, context.prefix.length, rawLang);
+                        }
+                    },
+                    // Plain Enter inside a code block exits it: the new line becomes
+                    // a plain paragraph. On an empty code line it just closes the
+                    // block - no stray empty line is left behind.
+                    exitCodeBlock: {
+                        key: 'Enter',
+                        collapsed: true,
+                        format: ['code-block'],
+                        handler: function (range, context) {
+                            if (context.empty) {
+                                quill.formatLine(range.index, 1, { 'code-block': false }, 'user');
+                                quill.setSelection(range.index, 0, 'user');
+                                return;
+                            }
+
+                            quill.insertText(range.index, '\n', 'user');
+                            quill.formatLine(range.index + 1, 1, { 'code-block': false }, 'user');
+                            quill.setSelection(range.index + 1, 0, 'user');
+                        }
+                    },
+                    // Ctrl+Enter inside a code block stays inside: the new line keeps
+                    // the code-block format (the default Enter behavior, made explicit
+                    // here because plain Enter now exits the block).
+                    continueCodeBlock: {
+                        key: 'Enter',
+                        shortKey: true,
+                        collapsed: true,
+                        format: ['code-block'],
+                        handler: function (range, context) {
+                            quill.insertText(range.index, '\n', 'user');
+                            // Carry over the exact language: context.format holds the
+                            // 'code-block' value (language key), so a mixed-language
+                            // block is not reset by the new line.
+                            quill.formatLine(range.index  + 1, 1, { 'code-block': context.format['code-block'] }, 'user');
+                            quill.setSelection(range.index + 1, 0, 'user');
+                        }
+                    },
                     saveNow: {
                         key: 's',
                         shortKey: true,
@@ -212,6 +342,9 @@ export function createEditor(elementId, initialHtml, dotNetRef) {
             if (!stillInside) {
                 concealCodeBlock(quill, entry.revealedCodeBlock.blots);
                 entry.revealedCodeBlock = null;
+                // Re-tokenize immediately instead of waiting for the syntax
+                // module's timer, so the code never flashes unhighlighted.
+                quill.getModule('syntax')?.highlight?.();
             }
         }
 
@@ -291,15 +424,14 @@ function insertMarkdownPaste(quill, text) {
             content.insert(line);
             insertedLength += line.length;
             if (i < lines.length - 1) {
-                content.insert('\n', { 'code-block': true });
+                content.insert('\n', { 'code-block': 'plain' });
                 insertedLength += 1;
             } else if (atLineEnd) {
-                content.retain(1, { 'code-block': true }); // reuse existing closing '\n'
+                content.retain(1, { 'code-block': 'plain' }); // reuse existing closing '\n'
             }
         });
     } else {
-        // A whole fenced block (``` ... ```) pasted outside a code block:
-        // convert the fences into real code-block formatting instead of
+        // A whole fenced block (``` ... ```) pasted outside a code block: // convert the fences into real code-block formatting instead of
         // leaving literal '```' lines behind. Only at a line end, so the
         // surrounding text is not swallowed into the block.
         const isFenceStart = /^```[^\n]*$/.test(lines[0].trim());
@@ -310,7 +442,7 @@ function insertMarkdownPaste(quill, text) {
             // block, so the caret lands outside the code block.
             lines.slice(1, -1).forEach(line => {
                 content.insert(line);
-                content.insert('\n', { 'code-block': true });
+                content.insert('\n', { 'code-block': 'plain' });
                 insertedLength += line.length + 1;
             });
 
@@ -381,6 +513,14 @@ function handleAutoFormat(quill, delta, entry) {
     // (line and inline patterns below) must never touch it, otherwise typing
     // '# ', '- ', '> ', '// ', '**x**', '`x`' etc. would mangle the code.
     if (currentFormat['code-block']) return;
+
+    // Telegram-style fence with language: '```csharp ' (Enter variant is the
+    // createCodeFence keyboard binding).
+    const fenceLangMatch = lineText.match(/^```([a-zA-Z0-9+#_-]+)\s$/);
+    if (fenceLangMatch) {
+        insertCodeBlockWithLanguage(quill, range.index - lineOffset, lineOffset, fenceLangMatch[1]);
+        return;
+    }
 
     // Check line-start patterns (#, -, >) first.
     for (const pattern of LINE_PATTERNS) {
@@ -598,7 +738,7 @@ function concealCodeBlock(quill, blots) {
     const codeText = lines.slice(1, -1).join('\n');
 
     quill.updateContents(new Delta().retain(startIndex).delete(contentLength).insert(codeText), 'silent');
-    quill.formatLine(startIndex, codeText.length + 1, { 'code-block': true }, 'silent');
+    quill.formatLine(startIndex, codeText.length + 1, { 'code-block': 'plain' }, 'silent');
 
     return quill.getLines(startIndex, codeText.length + 1);
 }
@@ -615,7 +755,7 @@ function getCodeBlockExtent(blot) {
 }
 
 function getCleanHtml(entry) {
-    if (entry.revealed.size === 0 && !entry.revealedCodeBlock) return entry.quill.root.innerHTML;
+    if (entry.revealed.size === 0 && !entry.revealedCodeBlock) return stripEditorUi(entry.quill.root.innerHTML);
 
     const concealedBlots = [...entry.revealed].map(blot => concealLine(entry.quill, blot));
     const concealedCodeLines = entry.revealedCodeBlock
@@ -635,12 +775,12 @@ function getCleanHtml(entry) {
         entry.revealedCodeBlock = { blots: new Set(newLines) };
     }
 
-    return html;
+    return stripEditorUi(html);
 }
 
 export function getHtml(elementId) {
     const entry = editors[elementId];
-    return entry ? entry.quill.root.innerHTML : '';
+    return entry ? stripEditorUi(entry.quill.root.innerHTML) : '';
 }
 
 export function setHtml(elementId, html) {

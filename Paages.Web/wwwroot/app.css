@@ -279,3 +279,88 @@ h1:focus {
     cursor: pointer;
     border: none;
 }
+
+/* Code block language picker (Quill syntax module): invisible until the block
+   is hovered, then fades in smoothly. */
+.ql-code-block-container {
+    position: relative;
+}
+
+.ql-code-block-container .ql-ui {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    opacity: 0;
+    transform: translateY(-3px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: none;
+}
+
+.ql-code-block-container:hover .ql-ui {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.ql-code-block-container .ql-ui select {
+    appearance: none;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1;
+    padding: 4px 22px 4px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color-scheme: dark;
+    background-color: var(--bg-secondary);
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath fill='%23ffffff' fill-opacity='0.55' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    color: var(--text-secondary);
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    transition: border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.ql-code-block-container .ql-ui select:hover,
+.ql-code-block-container .qlui select:focus {
+    border-color: var(--accent);
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Native dropdown popup: same palette as the app. */
+.ql-code-block-container .ql-ui select option {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.ql-code-block-container .ql-ui select option:checked,
+.ql-code-block-container .ql-ui select option:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--accent);
+}
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+/* Native dropdown popup: same palette as the app. */
+.ql-code-block-container .ql-ui select option {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.ql-code-block-container .ql-ui select option:checked,
+.ql-code-block-container .ql-ui select option:hover {
+    background-color: var(--bg-tertiary);
+    color: var(--accent);
+}
+
+/* The picker is editor-only chrome: never render it in published notes. */
+.public-content .ql-code-block-container .ql-ui {
+    display: none;
+}
